@@ -1,4 +1,4 @@
-// Constants for ClimateIQ AI application
+// Constants for OutbackVision AI application
 
 export const CARBON_CATEGORIES = {
   FOOD: "food",

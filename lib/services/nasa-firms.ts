@@ -70,17 +70,13 @@ export async function getActiveFires(
           // With API key - more data available
           url = `${FIRMS_BASE_URL}/area/csv/${apiKey}/VIIRS_SNPP_NRT/${minLon},${minLat},${maxLon},${maxLat}/${days}`;
         } else {
-          // Without API key - last 24 hours only (public endpoint limitation)
-          // Note: Public endpoint only supports 1 day. If we need more, we might need a key or multiple requests.
-          // For now, we'll stick to 1 day for public endpoint but log a warning if days > 1 requested without key.
-          if (days > 1) {
-             console.warn('NASA FIRMS: Public endpoint only supports 1 day of data. Requesting 1 day instead of ' + days);
-          }
+          // Without API key - last 24 hours only
           url = `${FIRMS_BASE_URL}/area/csv/no_key/VIIRS_SNPP_NRT/${minLon},${minLat},${maxLon},${maxLat}/1`;
+          console.warn('NASA FIRMS: Using public endpoint (24h data only). Add API key for more data.');
         }
 
         const response = await axios.get(url, {
-          timeout: 30000, // Increased to 30s
+          timeout: 10000,
         });
 
         // Parse CSV response
