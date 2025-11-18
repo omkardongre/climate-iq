@@ -81,7 +81,7 @@ export function AuthGuard({
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <Card className="w-full max-w-md">
               <CardHeader>
-                <CardTitle>Sign In to ClimateIQ AI</CardTitle>
+                <CardTitle>Sign In to OutbackVision AI</CardTitle>
                 <CardDescription>
                   Save your goals and track your environmental impact over time
                 </CardDescription>

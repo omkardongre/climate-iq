@@ -22,7 +22,7 @@ interface AccessibilityMenuProps {
 export function AccessibilityMenu({ className }: AccessibilityMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { getKeyboardShortcuts } = useKeyboardNavigation();
-
+  
   const keyboardShortcuts = getKeyboardShortcuts();
 
   return (
@@ -44,23 +44,12 @@ export function AccessibilityMenu({ className }: AccessibilityMenuProps) {
       {isOpen && (
         <Card className="fixed bottom-20 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-6rem)] overflow-y-auto shadow-xl border-2">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Accessibility className="h-5 w-5 text-green-600" />
-                <CardTitle className="text-lg">Accessibility Options</CardTitle>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsOpen(false)}
-                className="h-8 w-8 p-0"
-                title="Close Menu"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Accessibility className="h-5 w-5 text-green-600" />
+              Accessibility Options
+            </CardTitle>
             <CardDescription>
-              Make ClimateIQ AI work better for you
+              Make OutbackVision AI work better for you
             </CardDescription>
           </CardHeader>
 
