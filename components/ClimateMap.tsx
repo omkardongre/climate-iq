@@ -1,39 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Flame,
-  Wind,
-  Droplets,
-  Loader2,
-  AlertTriangle,
-  Layers,
-  Leaf,
-  Sun,
-  Waves,
-  Thermometer,
-  Sparkles,
-} from "lucide-react";
+import { useEffect, useRef, useState } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Flame, Wind, Droplets, Loader2, AlertTriangle, Layers, Leaf, Sun, Waves, Thermometer, Sparkles } from 'lucide-react';
 
 // Set Mapbox access token
-if (typeof window !== "undefined") {
-  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
+if (typeof window !== 'undefined') {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
   if (token) {
     mapboxgl.accessToken = token;
-    console.log("Mapbox token loaded:", token.substring(0, 20) + "...");
+    console.log('Mapbox token loaded:', token.substring(0, 20) + '...');
   } else {
-    console.error("NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN not found in environment");
+    console.error('NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN not found in environment');
   }
 }
 
@@ -56,7 +38,7 @@ interface FireStats {
 }
 
 interface FireRisk {
-  level: "none" | "low" | "moderate" | "high" | "extreme";
+  level: 'none' | 'low' | 'moderate' | 'high' | 'extreme';
   color: string;
   description: string;
 }
@@ -69,12 +51,8 @@ export function ClimateMap() {
   const [fires, setFires] = useState<FireData[]>([]);
   const [stats, setStats] = useState<FireStats | null>(null);
   const [risk, setRisk] = useState<FireRisk | null>(null);
-  const [activeLayer, setActiveLayer] = useState<
-    "fires" | "air" | "floods" | "temperature" | "solar" | "ndvi"
-  >("fires");
-  const [activeLayers, setActiveLayers] = useState<Set<string>>(
-    new Set(["fires"])
-  );
+  const [activeLayer, setActiveLayer] = useState<'fires' | 'air' | 'floods' | 'temperature' | 'solar' | 'ndvi'>('fires');
+  const [activeLayers, setActiveLayers] = useState<Set<string>>(new Set(['fires']));
   const [loadingFires, setLoadingFires] = useState(false);
   const [airQualityData, setAirQualityData] = useState<any>(null);
   const [loadingAir, setLoadingAir] = useState(false);
@@ -91,13 +69,7 @@ export function ClimateMap() {
   const [loadingAi, setLoadingAi] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(false);
   const moveTimeout = useRef<NodeJS.Timeout | null>(null);
-  const lastBounds = useRef<{
-    west: number;
-    east: number;
-    north: number;
-    south: number;
-  } | null>(null);
-  const [showSearchButton, setShowSearchButton] = useState(false);
+  const lastBounds = useRef<{ west: number; east: number; north: number; south: number } | null>(null);
   const centerMarker = useRef<mapboxgl.Marker | null>(null);
   const activeLayerRef = useRef(activeLayer);
 
@@ -107,36 +79,30 @@ export function ClimateMap() {
   }, [activeLayer]);
 
   // Update center marker (defined before useEffect)
-  // Update center marker (defined before useEffect)
-  // Update center marker (defined before useEffect)
-  const updateCenterMarker = (layer?: string) => {
+  const updateCenterMarker = () => {
     if (!map.current) return;
-
-    const currentLayer = layer || activeLayerRef.current;
+    
     const center = map.current.getCenter();
-
+    
     // Remove existing center marker
     if (centerMarker.current) {
       centerMarker.current.remove();
     }
-
+    
     // Only show center marker for non-fire layers
-    // For fires, we don't show the blue pointer by default (only on click)
-    // For others, we show it to indicate the center of analysis
-    // UPDATE: User requested pointer for ALL layers including fires
-    if (true) {
+    if (activeLayerRef.current !== 'fires') {
       // Create a custom marker element
-      const el = document.createElement("div");
-      el.className = "center-marker";
-      el.style.width = "24px";
-      el.style.height = "24px";
-      el.style.borderRadius = "50%";
-      el.style.backgroundColor = "#3b82f6";
-      el.style.border = "3px solid white";
-      el.style.boxShadow = "0 0 10px rgba(59, 130, 246, 0.5)";
-      el.style.cursor = "pointer";
-      el.style.transition = "all 0.3s ease";
-
+      const el = document.createElement('div');
+      el.className = 'center-marker';
+      el.style.width = '24px';
+      el.style.height = '24px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundColor = '#3b82f6';
+      el.style.border = '3px solid white';
+      el.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
+      el.style.cursor = 'pointer';
+      el.style.transition = 'all 0.3s ease';
+      
       centerMarker.current = new mapboxgl.Marker(el)
         .setLngLat([center.lng, center.lat])
         .addTo(map.current);
@@ -149,9 +115,7 @@ export function ClimateMap() {
     if (map.current) return; // Prevent double initialization
 
     if (!mapboxgl.accessToken) {
-      setError(
-        "Mapbox access token not configured. Add NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to .env.local"
-      );
+      setError('Mapbox access token not configured. Add NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to .env.local');
       setLoading(false);
       return;
     }
@@ -170,155 +134,150 @@ export function ClimateMap() {
               map.current.flyTo({
                 center: [position.coords.longitude, position.coords.latitude],
                 zoom: 8,
-                duration: 2000,
+                duration: 2000
               });
             }
           },
           (error) => {
-            console.log(
-              "Geolocation error:",
-              error.message,
-              "- using default location"
-            );
+            console.log('Geolocation error:', error.message, '- using default location');
           }
         );
       }
 
       const mapInstance = new mapboxgl.Map({
         container: mapContainer.current,
-        style: "mapbox://styles/mapbox/dark-v11",
+        style: 'mapbox://styles/mapbox/dark-v11',
         center: initialCenter,
         zoom: initialZoom,
       });
 
-      mapInstance.on("load", () => {
+      mapInstance.on('load', () => {
         if (!isMounted) return;
-        console.log("Map loaded successfully");
+        console.log('Map loaded successfully');
         map.current = mapInstance;
         setLoading(false);
         loadFireData();
-
+        
         // Add click handler for map clicks
-        mapInstance.on("click", (e) => {
+        mapInstance.on('click', (e) => {
           const currentLayer = activeLayerRef.current;
-          console.log("Map clicked, current layer:", currentLayer);
-          // Always update center marker on click, even for fires
-          // Update center marker to clicked location with smooth transition
-          if (centerMarker.current) {
-            const element = centerMarker.current.getElement();
-            if (element) {
-              element.style.transition = "all 0.3s ease";
+          console.log('Map clicked, current layer:', currentLayer);
+          if (currentLayer !== 'fires') {
+            // Update center marker to clicked location with smooth transition
+            if (centerMarker.current) {
+              const element = centerMarker.current.getElement();
+              if (element) {
+                element.style.transition = 'all 0.3s ease';
+              }
+              centerMarker.current.setLngLat([e.lngLat.lng, e.lngLat.lat]);
+            } else {
+              // Create marker at clicked location
+              const el = document.createElement('div');
+              el.className = 'center-marker';
+              el.style.width = '24px';
+              el.style.height = '24px';
+              el.style.borderRadius = '50%';
+              el.style.backgroundColor = '#3b82f6';
+              el.style.border = '3px solid white';
+              el.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
+              el.style.cursor = 'pointer';
+              el.style.transition = 'all 0.3s ease';
+              
+              centerMarker.current = new mapboxgl.Marker(el)
+                .setLngLat([e.lngLat.lng, e.lngLat.lat])
+                .addTo(mapInstance);
             }
-            centerMarker.current.setLngLat(e.lngLat);
-          } else {
-            // Create a custom marker element
-            const el = document.createElement("div");
-            el.className = "center-marker";
-            el.style.width = "24px";
-            el.style.height = "24px";
-            el.style.borderRadius = "50%";
-            el.style.backgroundColor = "#3b82f6";
-            el.style.border = "3px solid white";
-            el.style.boxShadow = "0 0 10px rgba(59, 130, 246, 0.5)";
-            el.style.cursor = "pointer";
-            el.style.transition = "all 0.3s ease";
-
-            centerMarker.current = new mapboxgl.Marker(el)
-              .setLngLat(e.lngLat)
-              .addTo(mapInstance);
-          }
-
-          console.log("Reloading data for clicked location");
-          if (currentLayer === "fires") {
-            // Do NOT reload data for fires on click.
-            // Just show the marker (already done above) and maybe a popup if we had point data.
-            // Since we don't have point-specific data API for a single click without reloading,
-            // we rely on the already loaded markers.
-            console.log("Click on fire layer - keeping existing data");
-          } else {
-            // For all other layers (air, floods, etc.), just update the marker
-            // and let the "Search Area" button trigger the data load.
-            // This ensures consistent interaction across all tabs.
-            console.log(
-              `Click on ${currentLayer} layer - marker updated, waiting for search`
-            );
+            
+            // Reload data for clicked location
+            console.log('Reloading data for clicked location');
+            if (currentLayer === 'air') {
+              loadAirQualityData();
+            } else if (currentLayer === 'floods') {
+              loadFloodData();
+            } else if (currentLayer === 'temperature') {
+              loadTemperatureData();
+            }
           }
         });
       });
 
       // Reload data when map moves (debounced + bounds check)
-      mapInstance.on("moveend", () => {
+      mapInstance.on('moveend', () => {
         if (!isMounted) return;
-
+        
         // Clear previous timeout
         if (moveTimeout.current) {
           clearTimeout(moveTimeout.current);
         }
-
+        
         // Debounce: wait after user stops moving
         moveTimeout.current = setTimeout(() => {
           const bounds = mapInstance.getBounds();
           if (!bounds) return;
-
+          
           const currentBounds = {
             west: bounds.getWest(),
             east: bounds.getEast(),
             north: bounds.getNorth(),
             south: bounds.getSouth(),
           };
-
-          // Only show "Search This Area" button if bounds changed significantly
+          
+          // Only reload if bounds changed significantly (>10% of viewport)
           if (lastBounds.current) {
-            const widthChange = Math.abs(
-              currentBounds.east - currentBounds.west
-            );
-            const heightChange = Math.abs(
-              currentBounds.north - currentBounds.south
-            );
-            const lastWidth = Math.abs(
-              lastBounds.current.east - lastBounds.current.west
-            );
-            const lastHeight = Math.abs(
-              lastBounds.current.north - lastBounds.current.south
-            );
-
+            const widthChange = Math.abs(currentBounds.east - currentBounds.west);
+            const heightChange = Math.abs(currentBounds.north - currentBounds.south);
+            const lastWidth = Math.abs(lastBounds.current.east - lastBounds.current.west);
+            const lastHeight = Math.abs(lastBounds.current.north - lastBounds.current.south);
+            
             const widthDiff = Math.abs(widthChange - lastWidth) / lastWidth;
             const heightDiff = Math.abs(heightChange - lastHeight) / lastHeight;
-
-            // Skip if change is very small (lowered threshold to 1% to make button appear more easily)
-            if (widthDiff < 0.01 && heightDiff < 0.01) {
+            
+            // Skip reload if change is less than 10%
+            if (widthDiff < 0.1 && heightDiff < 0.1) {
+              console.log('Bounds change too small, skipping reload');
               return;
             }
           }
-
-          console.log("Map moved, showing search button");
-          setShowSearchButton(true);
+          
+          console.log('Map moved significantly, reloading data for layer:', activeLayerRef.current);
           lastBounds.current = currentBounds;
-
-          // Auto-load only for non-heavy layers if needed, but for consistency let's use manual refresh for all
-          // except maybe air quality which is fast?
-          // User requested manual refresh to avoid "half screen black" and confusion.
-          // So we will rely on the button.
-        }, 500); // Reduced debounce since we just show a button now
+          
+          // Use ref to get current layer
+          const currentLayer = activeLayerRef.current;
+          
+          if (currentLayer === 'fires') {
+            loadFireData();
+          } else if (currentLayer === 'air') {
+            updateCenterMarker();
+            loadAirQualityData();
+          } else if (currentLayer === 'floods') {
+            updateCenterMarker();
+            loadFloodData();
+          } else if (currentLayer === 'temperature') {
+            updateCenterMarker();
+            loadTemperatureData();
+          }
+        }, 3000); // 3 seconds debounce
       });
 
-      mapInstance.on("error", (e) => {
-        console.error("Mapbox error:", e);
+      mapInstance.on('error', (e) => {
+        console.error('Mapbox error:', e);
         if (!isMounted) return;
-        setError(`Map error: ${e.error?.message || "Unknown error"}`);
+        setError(`Map error: ${e.error?.message || 'Unknown error'}`);
         setLoading(false);
       });
 
       // Add navigation controls
-      mapInstance.addControl(new mapboxgl.NavigationControl(), "top-right");
+      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
       // Add fullscreen control
-      mapInstance.addControl(new mapboxgl.FullscreenControl(), "top-right");
+      mapInstance.addControl(new mapboxgl.FullscreenControl(), 'top-right');
 
       // Store reference
       map.current = mapInstance;
+
     } catch (err: any) {
-      console.error("Map initialization error:", err);
+      console.error('Map initialization error:', err);
       setError(`Failed to initialize map: ${err.message}`);
       setLoading(false);
     }
@@ -329,7 +288,7 @@ export function ClimateMap() {
         clearTimeout(moveTimeout.current);
       }
       // Clean up markers
-      fireMarkerRefs.current.forEach((marker) => marker.remove());
+      fireMarkerRefs.current.forEach(marker => marker.remove());
       fireMarkerRefs.current = [];
       if (centerMarker.current) {
         centerMarker.current.remove();
@@ -347,39 +306,25 @@ export function ClimateMap() {
     if (!map.current) return;
 
     setLoadingFires(true);
-    setShowSearchButton(false); // Hide button when loading
     try {
       const bounds = map.current.getBounds();
       if (!bounds) return;
-
-      const zoom = map.current.getZoom();
-      const center = map.current.getCenter();
-
-      let url = "";
-
-      // If zoomed out (zoom < 8), restrict analysis to 100km radius around center
-      // This prevents "Extreme Risk" from showing up just because the view covers a whole continent
-      if (zoom < 8) {
-        console.log(
-          `Zoom level ${zoom} is low. Using 100km radius search around center.`
-        );
-        url = `/api/map/fires?mode=point&lat=${center.lat}&lon=${center.lng}&radius=100&days=3`;
-      } else {
-        console.log("Fetching fires for bounds:", {
-          west: bounds.getWest().toFixed(2),
-          south: bounds.getSouth().toFixed(2),
-          east: bounds.getEast().toFixed(2),
-          north: bounds.getNorth().toFixed(2),
-        });
-        url = `/api/map/fires?mode=bounds&minLon=${bounds.getWest()}&minLat=${bounds.getSouth()}&maxLon=${bounds.getEast()}&maxLat=${bounds.getNorth()}&days=3`;
-      }
-
-      const response = await fetch(url);
+      
+      console.log('Fetching fires for bounds:', {
+        west: bounds.getWest().toFixed(2),
+        south: bounds.getSouth().toFixed(2),
+        east: bounds.getEast().toFixed(2),
+        north: bounds.getNorth().toFixed(2),
+      });
+      
+      const response = await fetch(
+        `/api/map/fires?mode=bounds&minLon=${bounds.getWest()}&minLat=${bounds.getSouth()}&maxLon=${bounds.getEast()}&maxLat=${bounds.getNorth()}&days=1`
+      );
 
       const data = await response.json();
-
+      
       console.log(`Received ${data.fires?.length || 0} fires`);
-
+      
       if (data.fires) {
         setFires(data.fires);
         setStats(data.stats);
@@ -387,93 +332,74 @@ export function ClimateMap() {
         updateFireMarkers(data.fires);
       }
     } catch (err: any) {
-      console.error("Error loading fire data:", err);
+      console.error('Error loading fire data:', err);
     } finally {
       setLoadingFires(false);
     }
   };
 
-  // Store marker references
+  // Store fire marker references
   const fireMarkerRefs = useRef<mapboxgl.Marker[]>([]);
-  const solarMarkerRefs = useRef<mapboxgl.Marker[]>([]);
-  const ndviMarkerRefs = useRef<mapboxgl.Marker[]>([]);
 
   // Update fire markers on map (optimized)
   const updateFireMarkers = (fireData: FireData[]) => {
     if (!map.current) return;
 
     // Remove existing fire markers properly
-    fireMarkerRefs.current.forEach((marker) => marker.remove());
+    fireMarkerRefs.current.forEach(marker => marker.remove());
     fireMarkerRefs.current = [];
 
     // Limit markers to prevent performance issues
     const maxMarkers = 1000;
-    const limitedData =
-      fireData.length > maxMarkers ? fireData.slice(0, maxMarkers) : fireData;
+    const limitedData = fireData.length > maxMarkers 
+      ? fireData.slice(0, maxMarkers)
+      : fireData;
 
     if (fireData.length > maxMarkers) {
-      console.warn(
-        `Showing ${maxMarkers} of ${fireData.length} fires for performance`
-      );
+      console.warn(`Showing ${maxMarkers} of ${fireData.length} fires for performance`);
     }
 
     // Add new fire markers
     limitedData.forEach((fire) => {
-      const el = document.createElement("div");
-      el.className = "fire-marker";
-
+      const el = document.createElement('div');
+      el.className = 'fire-marker';
+      
       // Size based on fire radiative power
       const size = Math.min(Math.max(fire.frp / 10, 8), 30);
-
+      
       // Color based on confidence
-      let color = "#f59e0b"; // yellow for low
-      if (typeof fire.confidence === "number") {
-        if (fire.confidence >= 80) color = "#dc2626"; // red for high
-        else if (fire.confidence >= 50) color = "#f97316"; // orange for medium
-      } else if (fire.confidence === "h") {
-        color = "#dc2626";
+      let color = '#f59e0b'; // yellow for low
+      if (typeof fire.confidence === 'number') {
+        if (fire.confidence >= 80) color = '#dc2626'; // red for high
+        else if (fire.confidence >= 50) color = '#f97316'; // orange for medium
+      } else if (fire.confidence === 'h') {
+        color = '#dc2626';
       }
 
       el.style.width = `${size}px`;
       el.style.height = `${size}px`;
       el.style.backgroundColor = color;
-      el.style.borderRadius = "50%";
-      el.style.border = "2px solid white";
-      el.style.boxShadow = "0 0 10px rgba(255, 100, 0, 0.5)";
-      el.style.cursor = "pointer";
+      el.style.borderRadius = '50%';
+      el.style.border = '2px solid white';
+      el.style.boxShadow = '0 0 10px rgba(255, 100, 0, 0.5)';
+      el.style.cursor = 'pointer';
 
       // Create popup
-      const popupContent = `
+      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
         <div class="p-2">
-          <h3 class="font-bold text-sm mb-1">Thermal Anomaly</h3>
-          ${
-            fire.brightness !== undefined
-              ? `<p class="text-xs"><strong>Brightness:</strong> ${fire.brightness}K</p>`
-              : ""
-          }
-          ${
-            fire.frp !== undefined
-              ? `<p class="text-xs"><strong>Power:</strong> ${fire.frp} MW</p>`
-              : ""
-          }
-          ${
-            fire.confidence !== undefined && fire.confidence !== "n"
-              ? `<p class="text-xs"><strong>Confidence:</strong> ${fire.confidence}</p>`
-              : ""
-          }
-          <p class="text-xs"><strong>Date:</strong> ${fire.acq_date} ${
-        fire.acq_time
-      }</p>
+          <h3 class="font-bold text-sm mb-1">Active Fire</h3>
+          <p class="text-xs"><strong>Brightness:</strong> ${fire.brightness}K</p>
+          <p class="text-xs"><strong>Power:</strong> ${fire.frp} MW</p>
+          <p class="text-xs"><strong>Confidence:</strong> ${fire.confidence}</p>
+          <p class="text-xs"><strong>Date:</strong> ${fire.acq_date} ${fire.acq_time}</p>
         </div>
-      `;
-
-      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent);
+      `);
 
       const marker = new mapboxgl.Marker(el)
         .setLngLat([fire.longitude, fire.latitude])
         .setPopup(popup)
         .addTo(map.current!);
-
+      
       fireMarkerRefs.current.push(marker);
     });
   };
@@ -495,19 +421,20 @@ export function ClimateMap() {
         lat = center.lat;
         lng = center.lng;
       }
-
-      console.log("Fetching air quality for:", lat.toFixed(2), lng.toFixed(2));
-
+      
+      console.log('Fetching air quality for:', lat.toFixed(2), lng.toFixed(2));
+      
       const response = await fetch(
         `/api/map/air-quality?mode=point&lat=${lat}&lon=${lng}`
       );
 
       const data = await response.json();
-
-      console.log("Air quality data:", data);
+      
+      console.log('Air quality data:', data);
       setAirQualityData(data);
+      
     } catch (err: any) {
-      console.error("Error loading air quality data:", err);
+      console.error('Error loading air quality data:', err);
     } finally {
       setLoadingAir(false);
     }
@@ -531,12 +458,12 @@ export function ClimateMap() {
         lat = center.lat;
         lng = center.lng;
       }
-      console.log("Fetching flood risk for:", lat.toFixed(2), lng.toFixed(2));
+      console.log('Fetching flood risk for:', lat.toFixed(2), lng.toFixed(2));
       const response = await fetch(`/api/map/flood-risk?lat=${lat}&lon=${lng}`);
       const data = await response.json();
       setFloodData(data);
     } catch (err: any) {
-      console.error("Error loading flood data:", err);
+      console.error('Error loading flood data:', err);
     } finally {
       setLoadingFlood(false);
     }
@@ -558,18 +485,12 @@ export function ClimateMap() {
         lat = center.lat;
         lng = center.lng;
       }
-      console.log(
-        "Fetching temperature anomaly for:",
-        lat.toFixed(2),
-        lng.toFixed(2)
-      );
-      const response = await fetch(
-        `/api/map/temperature?lat=${lat}&lon=${lng}`
-      );
+      console.log('Fetching temperature anomaly for:', lat.toFixed(2), lng.toFixed(2));
+      const response = await fetch(`/api/map/temperature?lat=${lat}&lon=${lng}`);
       const data = await response.json();
       setTemperatureData(data);
     } catch (err: any) {
-      console.error("Error loading temperature data:", err);
+      console.error('Error loading temperature data:', err);
     } finally {
       setLoadingTemperature(false);
     }
@@ -580,75 +501,55 @@ export function ClimateMap() {
     if (!map.current) return;
     setLoadingSolar(true);
     try {
-      // Get location from marker if it exists, otherwise use map center
-      let lat, lng;
-      if (centerMarker.current) {
-        const lngLat = centerMarker.current.getLngLat();
-        lat = lngLat.lat;
-        lng = lngLat.lng;
-      } else {
-        const center = map.current.getCenter();
-        lat = center.lat;
-        lng = center.lng;
+      const bounds = map.current.getBounds();
+      if (!bounds) {
+        setLoadingSolar(false);
+        return;
       }
-
-      console.log(
-        "Fetching solar potential for point:",
-        lat.toFixed(4),
-        lng.toFixed(4)
-      );
-      // Use 1km radius as requested
-      const response = await fetch(
-        `/api/climate/solar-potential?mode=point&lat=${lat}&lon=${lng}&radius=1`
-      );
+      const boundsStr = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
+      
+      console.log('Fetching solar potential for bounds:', boundsStr);
+      const response = await fetch(`/api/climate/solar-potential?bounds=${boundsStr}`);
       const data = await response.json();
-
+      
       if (data.solarData && data.solarData.length > 0) {
         setSolarData(data.solarData);
-
+        
         // Add solar markers to map
         data.solarData.forEach((point: any) => {
-          const el = document.createElement("div");
-          el.className = "solar-marker";
-
+          const el = document.createElement('div');
+          el.className = 'solar-marker';
+          
           // Color based on solar radiation (kWh/m²/day)
           const radiation = point.solarRadiation;
-          let color = "#fbbf24"; // yellow
-          if (radiation > 6) color = "#f59e0b"; // orange
-          if (radiation > 7) color = "#dc2626"; // red
-
-          el.style.width = "16px";
-          el.style.height = "16px";
-          el.style.borderRadius = "50%";
+          let color = '#fbbf24'; // yellow
+          if (radiation > 6) color = '#f59e0b'; // orange
+          if (radiation > 7) color = '#dc2626'; // red
+          
+          el.style.width = '16px';
+          el.style.height = '16px';
+          el.style.borderRadius = '50%';
           el.style.backgroundColor = color;
-          el.style.border = "2px solid white";
-          el.style.boxShadow = "0 0 8px rgba(0,0,0,0.3)";
-
+          el.style.border = '2px solid white';
+          el.style.boxShadow = '0 0 8px rgba(0,0,0,0.3)';
+          
           const marker = new mapboxgl.Marker(el)
             .setLngLat([point.lng, point.lat])
             .setPopup(
               new mapboxgl.Popup({ offset: 25 }).setHTML(`
-                  <div style="padding: 8px;">
-                    <strong>☀️ Solar Potential</strong><br/>
-                    <strong>Annual Production:</strong> ${point.annualProduction.toFixed(
-                      0
-                    )} kWh/year<br/>
-                    <strong>Solar Radiation:</strong> ${point.solarRadiation.toFixed(
-                      2
-                    )} kWh/m²/day<br/>
-                    <strong>Capacity Factor:</strong> ${point.capacityFactor.toFixed(
-                      1
-                    )}%
-                  </div>
-                `)
+                <div style="padding: 8px;">
+                  <strong>☀️ Solar Potential</strong><br/>
+                  <strong>Annual Production:</strong> ${point.annualProduction.toFixed(0)} kWh/year<br/>
+                  <strong>Solar Radiation:</strong> ${point.solarRadiation.toFixed(2)} kWh/m²/day<br/>
+                  <strong>Capacity Factor:</strong> ${point.capacityFactor.toFixed(1)}%
+                </div>
+              `)
             )
             .addTo(map.current!);
-
-          solarMarkerRefs.current.push(marker);
         });
       }
     } catch (err: any) {
-      console.error("Error loading solar data:", err);
+      console.error('Error loading solar data:', err);
     } finally {
       setLoadingSolar(false);
     }
@@ -660,64 +561,54 @@ export function ClimateMap() {
     setLoadingNdvi(true);
     try {
       const center = map.current.getCenter();
-
-      console.log("Fetching NDVI data for location:", center.lat, center.lng);
-      const response = await fetch(
-        `/api/map/ndvi?lat=${center.lat}&lon=${center.lng}`
-      );
-
+      
+      console.log('Fetching NDVI data for location:', center.lat, center.lng);
+      const response = await fetch(`/api/map/ndvi?lat=${center.lat}&lon=${center.lng}`);
+      
       if (!response.ok) {
-        throw new Error("Failed to fetch NDVI data");
+        throw new Error('Failed to fetch NDVI data');
       }
-
+      
       const data = await response.json();
       setNdviData(data);
-
+      
       // Add NDVI marker to map
-      const el = document.createElement("div");
-      el.className = "ndvi-marker";
-
+      const el = document.createElement('div');
+      el.className = 'ndvi-marker';
+      
       // Color based on NDVI value (0-1 scale)
       const ndvi = data.ndvi;
-      let color = "#dc2626"; // red (poor)
-      if (ndvi > 0.6) color = "#16a34a"; // green (excellent)
-      else if (ndvi > 0.4) color = "#84cc16"; // lime (good)
-      else if (ndvi > 0.2) color = "#eab308"; // yellow (fair)
-
-      el.style.width = "24px";
-      el.style.height = "24px";
-      el.style.borderRadius = "50%";
+      let color = '#dc2626'; // red (poor)
+      if (ndvi > 0.6) color = '#16a34a'; // green (excellent)
+      else if (ndvi > 0.4) color = '#84cc16'; // lime (good)
+      else if (ndvi > 0.2) color = '#eab308'; // yellow (fair)
+      
+      el.style.width = '24px';
+      el.style.height = '24px';
+      el.style.borderRadius = '50%';
       el.style.backgroundColor = color;
-      el.style.border = "3px solid white";
-      el.style.boxShadow = "0 0 10px rgba(0,0,0,0.4)";
-
+      el.style.border = '3px solid white';
+      el.style.boxShadow = '0 0 10px rgba(0,0,0,0.4)';
+      
       const marker = new mapboxgl.Marker(el)
         .setLngLat([data.lng, data.lat])
         .setPopup(
           new mapboxgl.Popup({ offset: 25 }).setHTML(`
-              <div style="padding: 8px;">
-                <strong>🌿 Vegetation Health</strong><br/>
-                <strong>NDVI:</strong> ${data.ndvi.toFixed(3)}<br/>
-                <strong>Health:</strong> ${data.healthLevel}<br/>
-                <strong>Land Cover:</strong> ${data.landCover}<br/>
-                <strong>Cloud Cover:</strong> ${data.cloudCover.toFixed(
-                  1
-                )}%<br/>
-                <small>Updated: ${new Date(
-                  data.lastUpdated
-                ).toLocaleDateString()}</small>
-              </div>
-            `)
+            <div style="padding: 8px;">
+              <strong>🌿 Vegetation Health</strong><br/>
+              <strong>NDVI:</strong> ${data.ndvi.toFixed(3)}<br/>
+              <strong>Health:</strong> ${data.healthLevel}<br/>
+              <strong>Land Cover:</strong> ${data.landCover}<br/>
+              <strong>Cloud Cover:</strong> ${data.cloudCover.toFixed(1)}%<br/>
+              <small>Updated: ${new Date(data.lastUpdated).toLocaleDateString()}</small>
+            </div>
+          `)
         )
         .addTo(map.current!);
-
-      ndviMarkerRefs.current.push(marker);
     } catch (err: any) {
-      console.error("Error loading NDVI data:", err);
+      console.error('Error loading NDVI data:', err);
       // Show error to user
-      alert(
-        "No recent clear satellite imagery available for this location. Try a different area or check back later."
-      );
+      alert('No recent clear satellite imagery available for this location. Try a different area or check back later.');
     } finally {
       setLoadingNdvi(false);
     }
@@ -726,177 +617,133 @@ export function ClimateMap() {
   // AI Region Analysis
   const handleAiAnalysis = async () => {
     if (!map.current) return;
-
+    
     setLoadingAi(true);
     try {
       const center = map.current.getCenter();
       const bounds = map.current.getBounds();
-      const zoom = map.current.getZoom();
-
       if (!bounds) {
         setLoadingAi(false);
         return;
       }
-
+      
       // Gather data based on active layer (layer-specific analysis)
       const regionData: any = {
         location: {
           lat: center.lat,
           lon: center.lng,
-          // If zoomed out, don't send full bounds, just send center context
-          bounds:
-            zoom < 8
-              ? undefined
-              : {
-                  north: bounds.getNorth(),
-                  south: bounds.getSouth(),
-                  east: bounds.getEast(),
-                  west: bounds.getWest(),
-                },
-          radius: zoom < 8 ? 100 : undefined, // 100km radius if zoomed out
+          bounds: {
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest(),
+          },
         },
         activeLayer: activeLayer, // Tell AI which layer is active
       };
 
       // Add data for the active layer
-      if (activeLayer === "fires") {
-        // Use the stats we already have (which are now correctly scoped by loadFireData)
-        if (stats) {
-          regionData.fires = {
-            ...stats,
-            // Add note about scope
-            scope: zoom < 8 ? "100km radius" : "visible area",
-          };
-        }
-      } else if (activeLayer === "air" && airQualityData) {
+      if (activeLayer === 'fires' && stats) {
+        regionData.fires = stats;
+      } else if (activeLayer === 'air' && airQualityData) {
         regionData.airQuality = airQualityData;
-      } else if (activeLayer === "floods" && floodData) {
+      } else if (activeLayer === 'floods' && floodData) {
         regionData.flood = floodData;
-      } else if (activeLayer === "temperature" && temperatureData) {
+      } else if (activeLayer === 'temperature' && temperatureData) {
         regionData.temperature = temperatureData;
-      } else if (activeLayer === "solar" && solarData && solarData.length > 0) {
+      } else if (activeLayer === 'solar' && solarData && solarData.length > 0) {
         // Calculate solar averages for the region
-        const avgRadiation =
-          solarData.reduce((sum: number, p: any) => sum + p.solarRadiation, 0) /
-          solarData.length;
-        const avgProduction =
-          solarData.reduce(
-            (sum: number, p: any) => sum + p.annualProduction,
-            0
-          ) / solarData.length;
-        const avgCapacityFactor =
-          solarData.reduce((sum: number, p: any) => sum + p.capacityFactor, 0) /
-          solarData.length;
-
+        const avgRadiation = solarData.reduce((sum: number, p: any) => sum + p.solarRadiation, 0) / solarData.length;
+        const avgProduction = solarData.reduce((sum: number, p: any) => sum + p.annualProduction, 0) / solarData.length;
+        const avgCapacityFactor = solarData.reduce((sum: number, p: any) => sum + p.capacityFactor, 0) / solarData.length;
+        
         regionData.solar = {
           averageRadiation: avgRadiation,
           averageProduction: avgProduction,
           averageCapacityFactor: avgCapacityFactor,
           dataPoints: solarData.length,
-          suitability:
-            avgRadiation > 6.5
-              ? "Excellent"
-              : avgRadiation > 5.5
-              ? "Very Good"
-              : avgRadiation > 4.5
-              ? "Good"
-              : "Moderate",
+          suitability: avgRadiation > 6.5 ? 'Excellent' : avgRadiation > 5.5 ? 'Very Good' : avgRadiation > 4.5 ? 'Good' : 'Moderate',
         };
-      } else if (activeLayer === "ndvi" && ndviData) {
+      } else if (activeLayer === 'ndvi' && ndviData) {
         regionData.ndvi = ndviData;
       }
-
-      const response = await fetch("/api/map/ai-analysis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      
+      const response = await fetch('/api/map/ai-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(regionData),
       });
-
+      
       if (!response.ok) {
-        throw new Error("AI analysis failed");
+        throw new Error('AI analysis failed');
       }
-
+      
       const analysis = await response.json();
       setAiAnalysis(analysis);
       setShowAiPanel(true);
     } catch (err: any) {
-      console.error("AI analysis error:", err);
-      alert("Failed to analyze region. Please try again.");
+      console.error('AI analysis error:', err);
+      alert('Failed to analyze region. Please try again.');
     } finally {
       setLoadingAi(false);
     }
   };
 
   // Handle layer toggle
-  const handleLayerChange = (
-    layer: "fires" | "air" | "floods" | "temperature" | "solar" | "ndvi"
-  ) => {
+  const handleLayerChange = (layer: 'fires' | 'air' | 'floods' | 'temperature' | 'solar' | 'ndvi') => {
     setActiveLayer(layer);
-
-    // Clear all layer-specific markers
-    fireMarkerRefs.current.forEach((marker) => marker.remove());
-    fireMarkerRefs.current = [];
-
-    solarMarkerRefs.current.forEach((marker) => marker.remove());
-    solarMarkerRefs.current = [];
-
-    ndviMarkerRefs.current.forEach((marker) => marker.remove());
-    ndviMarkerRefs.current = [];
-
-    // Reset map to user's current location when switching layers
-    if (map.current && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          if (map.current) {
-            map.current.flyTo({
-              center: [position.coords.longitude, position.coords.latitude],
-              zoom: 8,
-              duration: 1500,
-            });
-          }
-        },
-        (error) => {
-          console.log("Geolocation error on layer change:", error.message);
-          // Continue without resetting location if geolocation fails
-        }
-      );
-    }
-
-    // Small delay to allow map to animate, then load data and update marker
-    setTimeout(() => {
-      updateCenterMarker(layer);
-
-      // Load data for selected layer
-      if (layer === "fires") {
-        loadFireData();
-      } else if (layer === "air") {
-        loadAirQualityData();
-      } else if (layer === "floods") {
-        loadFloodData();
-      } else if (layer === "temperature") {
-        loadTemperatureData();
-      } else if (layer === "solar") {
-        loadSolarData();
-      } else if (layer === "ndvi") {
-        loadNdviData();
+    
+    // Show/hide fire markers properly
+    fireMarkerRefs.current.forEach(marker => {
+      const element = marker.getElement();
+      if (element) {
+        element.style.display = layer === 'fires' ? 'block' : 'none';
       }
-    }, 300);
+    });
+    
+    // Load data for selected layer
+    if (layer === 'fires') {
+      // Remove center marker for fire layer
+      if (centerMarker.current) {
+        centerMarker.current.remove();
+        centerMarker.current = null;
+      }
+      loadFireData();
+    } else if (layer === 'air') {
+      updateCenterMarker();
+      loadAirQualityData();
+    } else if (layer === 'floods') {
+      updateCenterMarker();
+      loadFloodData();
+    } else if (layer === 'temperature') {
+      updateCenterMarker();
+      loadTemperatureData();
+    } else if (layer === 'solar') {
+      // Remove center marker for solar layer (shows grid)
+      if (centerMarker.current) {
+        centerMarker.current.remove();
+        centerMarker.current = null;
+      }
+      loadSolarData();
+    } else if (layer === 'ndvi') {
+      updateCenterMarker();
+      loadNdviData();
+    }
   };
 
   // Refresh data
   const handleRefresh = () => {
-    setShowSearchButton(false);
-    if (activeLayer === "fires") {
+    if (activeLayer === 'fires') {
       loadFireData();
-    } else if (activeLayer === "air") {
+    } else if (activeLayer === 'air') {
       loadAirQualityData();
-    } else if (activeLayer === "floods") {
+    } else if (activeLayer === 'floods') {
       loadFloodData();
-    } else if (activeLayer === "temperature") {
+    } else if (activeLayer === 'temperature') {
       loadTemperatureData();
-    } else if (activeLayer === "solar") {
+    } else if (activeLayer === 'solar') {
       loadSolarData();
-    } else if (activeLayer === "ndvi") {
+    } else if (activeLayer === 'ndvi') {
       loadNdviData();
     }
   };
@@ -921,48 +768,12 @@ export function ClimateMap() {
   }
 
   const layerConfig = [
-    {
-      id: "fires",
-      label: "Thermal Anomalies",
-      icon: Flame,
-      color: "text-orange-500",
-      available: true,
-    },
-    {
-      id: "air",
-      label: "Air Quality",
-      icon: Wind,
-      color: "text-blue-500",
-      available: true,
-    },
-    {
-      id: "floods",
-      label: "Flood Risk",
-      icon: Waves,
-      color: "text-blue-600",
-      available: true,
-    },
-    {
-      id: "temperature",
-      label: "Temperature",
-      icon: Thermometer,
-      color: "text-red-500",
-      available: true,
-    },
-    {
-      id: "solar",
-      label: "Solar Potential",
-      icon: Sun,
-      color: "text-yellow-500",
-      available: true,
-    },
-    {
-      id: "ndvi",
-      label: "Vegetation",
-      icon: Leaf,
-      color: "text-green-500",
-      available: true,
-    },
+    { id: 'fires', label: 'Fires', icon: Flame, color: 'text-orange-500', available: true },
+    { id: 'air', label: 'Air Quality', icon: Wind, color: 'text-blue-500', available: true },
+    { id: 'floods', label: 'Flood Risk', icon: Waves, color: 'text-blue-600', available: true },
+    { id: 'temperature', label: 'Temperature', icon: Thermometer, color: 'text-red-500', available: true },
+    { id: 'solar', label: 'Solar Potential', icon: Sun, color: 'text-yellow-500', available: true },
+    { id: 'ndvi', label: 'Vegetation', icon: Leaf, color: 'text-green-500', available: true },
   ];
 
   return (
@@ -974,52 +785,41 @@ export function ClimateMap() {
             <Layers className="h-5 w-5" />
             Map Layers
           </CardTitle>
-          <CardDescription>
-            Select data layers to visualize on the map
-          </CardDescription>
+          <CardDescription>Select data layers to visualize on the map</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             {layerConfig.map((layer) => {
               const Icon = layer.icon;
               const isActive = activeLayer === layer.id;
-              const isLoading =
-                isActive &&
-                ((layer.id === "fires" && loadingFires) ||
-                  (layer.id === "air" && loadingAir) ||
-                  (layer.id === "floods" && loadingFlood) ||
-                  (layer.id === "temperature" && loadingTemperature) ||
-                  (layer.id === "solar" && loadingSolar) ||
-                  (layer.id === "ndvi" && loadingNdvi));
-
+              const isLoading = isActive && (
+                (layer.id === 'fires' && loadingFires) ||
+                (layer.id === 'air' && loadingAir) ||
+                (layer.id === 'floods' && loadingFlood) ||
+                (layer.id === 'temperature' && loadingTemperature) ||
+                (layer.id === 'solar' && loadingSolar) ||
+                (layer.id === 'ndvi' && loadingNdvi)
+              );
+              
               return (
                 <Button
                   key={layer.id}
-                  variant={isActive ? "default" : "outline"}
+                  variant={isActive ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() =>
-                    layer.available && handleLayerChange(layer.id as any)
-                  }
+                  onClick={() => layer.available && handleLayerChange(layer.id as any)}
                   disabled={!layer.available || isLoading}
                   className={`flex flex-col items-center gap-1 h-auto py-3 ${
-                    !layer.available ? "opacity-50 cursor-not-allowed" : ""
+                    !layer.available ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   {isLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <Icon
-                      className={`h-5 w-5 ${
-                        isActive ? "text-white" : layer.color
-                      }`}
-                    />
+                    <Icon className={`h-5 w-5 ${isActive ? 'text-white' : layer.color}`} />
                   )}
                   <span className="text-xs">{layer.label}</span>
                   {!layer.available && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] px-1 py-0 mt-1"
-                    >
+                    <Badge variant="secondary" className="text-[10px] px-1 py-0 mt-1">
                       Coming Soon
                     </Badge>
                   )}
@@ -1033,7 +833,7 @@ export function ClimateMap() {
       {/* AI Analysis Button */}
       <Card>
         <CardContent className="pt-6">
-          <Button
+          <Button 
             onClick={handleAiAnalysis}
             disabled={loadingAi}
             className="w-full"
@@ -1052,8 +852,7 @@ export function ClimateMap() {
             )}
           </Button>
           <p className="text-xs text-muted-foreground text-center mt-2">
-            Get AI-powered insights about this region's climate risks and
-            future-proof score
+            Get AI-powered insights about this region's climate risks and future-proof score
           </p>
         </CardContent>
       </Card>
@@ -1067,11 +866,7 @@ export function ClimateMap() {
                 <Sparkles className="h-5 w-5 text-primary" />
                 AI Climate Analysis
               </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAiPanel(false)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowAiPanel(false)}>
                 ✕
               </Button>
             </div>
@@ -1080,31 +875,21 @@ export function ClimateMap() {
             {/* Overall Assessment */}
             <div>
               <h4 className="font-semibold mb-2">Overall Assessment</h4>
-              <p className="text-sm text-muted-foreground">
-                {aiAnalysis.assessment}
-              </p>
+              <p className="text-sm text-muted-foreground">{aiAnalysis.assessment}</p>
             </div>
 
             {/* Future-Proof Score */}
             <div className="p-4 bg-muted rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-semibold">Future-Proof Score</h4>
-                <Badge
-                  variant={
-                    aiAnalysis.futureProofScore >= 70
-                      ? "default"
-                      : aiAnalysis.futureProofScore >= 40
-                      ? "secondary"
-                      : "destructive"
-                  }
+                <Badge 
+                  variant={aiAnalysis.futureProofScore >= 70 ? 'default' : aiAnalysis.futureProofScore >= 40 ? 'secondary' : 'destructive'}
                   className="text-lg px-3 py-1"
                 >
                   {aiAnalysis.futureProofScore}/100
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {aiAnalysis.scoreExplanation}
-              </p>
+              <p className="text-sm text-muted-foreground">{aiAnalysis.scoreExplanation}</p>
             </div>
 
             {/* Key Risks */}
@@ -1112,19 +897,12 @@ export function ClimateMap() {
               <h4 className="font-semibold mb-2">Key Risks</h4>
               <div className="space-y-2">
                 {aiAnalysis.risks.map((risk: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-2 p-2 bg-muted rounded"
-                  >
-                    <Badge
+                  <div key={idx} className="flex items-start gap-2 p-2 bg-muted rounded">
+                    <Badge 
                       variant={
-                        risk.severity === "extreme"
-                          ? "destructive"
-                          : risk.severity === "high"
-                          ? "destructive"
-                          : risk.severity === "medium"
-                          ? "secondary"
-                          : "default"
+                        risk.severity === 'extreme' ? 'destructive' :
+                        risk.severity === 'high' ? 'destructive' :
+                        risk.severity === 'medium' ? 'secondary' : 'default'
                       }
                       className="mt-0.5"
                     >
@@ -1132,9 +910,7 @@ export function ClimateMap() {
                     </Badge>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{risk.risk}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {risk.description}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{risk.description}</p>
                     </div>
                   </div>
                 ))}
@@ -1146,10 +922,7 @@ export function ClimateMap() {
               <h4 className="font-semibold mb-2">Actionable Recommendations</h4>
               <div className="space-y-2">
                 {aiAnalysis.recommendations.map((rec: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-primary/5 rounded-lg border border-primary/20"
-                  >
+                  <div key={idx} className="p-3 bg-primary/5 rounded-lg border border-primary/20">
                     <p className="text-sm font-medium mb-1">{rec.action}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>Impact: {rec.impact}</span>
@@ -1164,43 +937,35 @@ export function ClimateMap() {
         </Card>
       )}
 
-      {activeLayer === "fires" && stats && risk && (
+      {/* Stats Panel - Fires */}
+      {activeLayer === 'fires' && stats && risk && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="col-span-full mb-2">
-            <h3 className="text-sm font-semibold text-muted-foreground">
-              Visible Area Summary (All Anomalies)
-            </h3>
-          </div>
-          <Card title="Total thermal anomalies detected in the current visible area.">
+          <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Total Anomalies</CardDescription>
+              <CardDescription>Total Fires</CardDescription>
               <CardTitle className="text-3xl">{stats.totalFires}</CardTitle>
             </CardHeader>
           </Card>
-
-          <Card title="Anomalies with >80% confidence or 'high' flag. Most detections are 'nominal' and not counted here.">
+          
+          <Card>
             <CardHeader className="pb-3">
               <CardDescription>High Confidence</CardDescription>
-              <CardTitle className="text-3xl text-red-500">
-                {stats.highConfidence}
-              </CardTitle>
+              <CardTitle className="text-3xl text-red-500">{stats.highConfidence}</CardTitle>
             </CardHeader>
           </Card>
-
-          <Card title="Total Fire Radiative Power (MW) - a measure of intensity.">
+          
+          <Card>
             <CardHeader className="pb-3">
               <CardDescription>Fire Power</CardDescription>
-              <CardTitle className="text-3xl">
-                {stats.totalFirePower} MW
-              </CardTitle>
+              <CardTitle className="text-3xl">{stats.totalFirePower} MW</CardTitle>
             </CardHeader>
           </Card>
-
-          <Card title="Calculated risk based on density and intensity of anomalies.">
+          
+          <Card>
             <CardHeader className="pb-3">
               <CardDescription>Risk Level</CardDescription>
               <div className="flex items-center gap-2">
-                <Badge
+                <Badge 
                   style={{ backgroundColor: risk.color }}
                   className="text-white"
                 >
@@ -1213,49 +978,42 @@ export function ClimateMap() {
       )}
 
       {/* Stats Panel - Air Quality */}
-      {activeLayer === "air" && airQualityData && (
+      {activeLayer === 'air' && airQualityData && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Air Quality Index</CardDescription>
-              <CardTitle
-                className="text-3xl"
-                style={{ color: airQualityData.color }}
-              >
+              <CardTitle className="text-3xl" style={{ color: airQualityData.color }}>
                 {airQualityData.aqi}
               </CardTitle>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>PM2.5</CardDescription>
-              <CardTitle className="text-3xl">
-                {airQualityData.pollutants.pm25.toFixed(1)}
-              </CardTitle>
+              <CardTitle className="text-3xl">{airQualityData.pollutants.pm25.toFixed(1)}</CardTitle>
               <p className="text-xs text-muted-foreground">μg/m³</p>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>PM10</CardDescription>
-              <CardTitle className="text-3xl">
-                {airQualityData.pollutants.pm10.toFixed(1)}
-              </CardTitle>
+              <CardTitle className="text-3xl">{airQualityData.pollutants.pm10.toFixed(1)}</CardTitle>
               <p className="text-xs text-muted-foreground">μg/m³</p>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Level</CardDescription>
               <div className="flex items-center gap-2">
-                <Badge
+                <Badge 
                   style={{ backgroundColor: airQualityData.color }}
                   className="text-white"
                 >
-                  {airQualityData.level.toUpperCase().replace("_", " ")}
+                  {airQualityData.level.toUpperCase().replace('_', ' ')}
                 </Badge>
               </div>
             </CardHeader>
@@ -1266,51 +1024,39 @@ export function ClimateMap() {
       {/* Removed: Water Stress, NDVI, Solar panels (fake data) */}
 
       {/* Stats Panel - Flood Risk (REAL DATA) */}
-      {activeLayer === "floods" && floodData && (
+      {activeLayer === 'floods' && floodData && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Flood Risk Score</CardDescription>
-              <CardTitle
-                className="text-3xl"
-                style={{ color: floodData.color }}
-              >
+              <CardTitle className="text-3xl" style={{ color: floodData.color }}>
                 {floodData.riskScore}
               </CardTitle>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Risk Level</CardDescription>
-              <Badge
-                style={{ backgroundColor: floodData.color }}
-                className="text-white"
-              >
+              <Badge style={{ backgroundColor: floodData.color }} className="text-white">
                 {floodData.riskLevel.toUpperCase()}
               </Badge>
-              <p className="text-xs text-muted-foreground mt-2">
-                {floodData.description}
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">{floodData.description}</p>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>24h Precipitation</CardDescription>
-              <CardTitle className="text-3xl">
-                {floodData.precipitation24h}
-              </CardTitle>
+              <CardTitle className="text-3xl">{floodData.precipitation24h}</CardTitle>
               <p className="text-xs text-muted-foreground">mm</p>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>7d Precipitation</CardDescription>
-              <CardTitle className="text-3xl">
-                {floodData.precipitation7d}
-              </CardTitle>
+              <CardTitle className="text-3xl">{floodData.precipitation7d}</CardTitle>
               <p className="text-xs text-muted-foreground">mm</p>
             </CardHeader>
           </Card>
@@ -1318,110 +1064,77 @@ export function ClimateMap() {
       )}
 
       {/* Stats Panel - Temperature Anomaly */}
-      {activeLayer === "temperature" && temperatureData && (
+      {activeLayer === 'temperature' && temperatureData && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Current Temperature</CardDescription>
-              <CardTitle className="text-3xl">
-                {temperatureData.currentTemp}°C
-              </CardTitle>
+              <CardTitle className="text-3xl">{temperatureData.currentTemp}°C</CardTitle>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Historical Average</CardDescription>
-              <CardTitle className="text-3xl">
-                {temperatureData.historicalAvg}°C
-              </CardTitle>
+              <CardTitle className="text-3xl">{temperatureData.historicalAvg}°C</CardTitle>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Anomaly</CardDescription>
-              <CardTitle
-                className="text-3xl"
-                style={{ color: temperatureData.color }}
-              >
-                {temperatureData.anomaly > 0 ? "+" : ""}
-                {temperatureData.anomaly}°C
+              <CardTitle className="text-3xl" style={{ color: temperatureData.color }}>
+                {temperatureData.anomaly > 0 ? '+' : ''}{temperatureData.anomaly}°C
               </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {temperatureData.anomalyPercent}%
-              </p>
+              <p className="text-xs text-muted-foreground">{temperatureData.anomalyPercent}%</p>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Trend</CardDescription>
-              <Badge
-                style={{ backgroundColor: temperatureData.color }}
-                className="text-white"
-              >
-                {temperatureData.trend.toUpperCase().replace("_", " ")}
+              <Badge style={{ backgroundColor: temperatureData.color }} className="text-white">
+                {temperatureData.trend.toUpperCase().replace('_', ' ')}
               </Badge>
-              <p className="text-xs text-muted-foreground mt-2">
-                {temperatureData.description}
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">{temperatureData.description}</p>
             </CardHeader>
           </Card>
         </div>
       )}
 
       {/* Stats Panel - Solar Potential */}
-      {activeLayer === "solar" && solarData && solarData.length > 0 && (
+      {activeLayer === 'solar' && solarData && solarData.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Average Solar Radiation</CardDescription>
               <CardTitle className="text-3xl">
-                {(
-                  solarData.reduce(
-                    (sum: number, p: any) => sum + p.solarRadiation,
-                    0
-                  ) / solarData.length
-                ).toFixed(2)}
+                {(solarData.reduce((sum: number, p: any) => sum + p.solarRadiation, 0) / solarData.length).toFixed(2)}
               </CardTitle>
               <p className="text-xs text-muted-foreground">kWh/m²/day</p>
             </CardHeader>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Avg Annual Production</CardDescription>
               <CardTitle className="text-3xl">
-                {Math.round(
-                  solarData.reduce(
-                    (sum: number, p: any) => sum + p.annualProduction,
-                    0
-                  ) / solarData.length
-                ).toLocaleString()}
+                {Math.round(solarData.reduce((sum: number, p: any) => sum + p.annualProduction, 0) / solarData.length).toLocaleString()}
               </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                kWh/year (4kW system)
-              </p>
+              <p className="text-xs text-muted-foreground">kWh/year (4kW system)</p>
             </CardHeader>
           </Card>
-
-          <Card title="Average capacity factor, representing the actual output relative to maximum possible output.">
+          
+          <Card>
             <CardHeader className="pb-3">
               <CardDescription>Avg Capacity Factor</CardDescription>
               <CardTitle className="text-3xl">
-                {(
-                  solarData.reduce(
-                    (sum: number, p: any) => sum + p.capacityFactor,
-                    0
-                  ) / solarData.length
-                ).toFixed(1)}
-                %
+                {(solarData.reduce((sum: number, p: any) => sum + p.capacityFactor, 0) / solarData.length).toFixed(1)}%
               </CardTitle>
             </CardHeader>
           </Card>
-
-          <Card title="Number of data points used to calculate solar potential in the visible area.">
+          
+          <Card>
             <CardHeader className="pb-3">
               <CardDescription>Data Points</CardDescription>
               <CardTitle className="text-3xl">{solarData.length}</CardTitle>
@@ -1437,167 +1150,76 @@ export function ClimateMap() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                {activeLayer === "fires" && (
-                  <>
-                    <Flame className="h-5 w-5 text-orange-500" /> Thermal
-                    Anomalies Map
-                  </>
-                )}
-                {activeLayer === "air" && (
-                  <>
-                    <Wind className="h-5 w-5 text-blue-500" /> Air Quality Map
-                  </>
-                )}
-                {activeLayer === "floods" && (
-                  <>
-                    <Waves className="h-5 w-5 text-blue-600" /> Flood Risk Map
-                  </>
-                )}
-                {activeLayer === "temperature" && (
-                  <>
-                    <Thermometer className="h-5 w-5 text-red-500" /> Temperature
-                    Map
-                  </>
-                )}
-                {activeLayer === "solar" && (
-                  <>
-                    <Sun className="h-5 w-5 text-yellow-500" /> Solar Potential
-                    Map
-                  </>
-                )}
-                {activeLayer === "ndvi" && (
-                  <>
-                    <Leaf className="h-5 w-5 text-green-500" /> Vegetation
-                    Health Map
-                  </>
-                )}
+                <Flame className="h-5 w-5 text-orange-500" />
+                Live Climate Map
               </CardTitle>
               <CardDescription>
-                {activeLayer === "fires" &&
-                  'Real-time thermal data from NASA FIRMS. Shows anomalies within 100km radius (zoomed out) or visible area. Click "Search Area" to analyze.'}
-                {activeLayer === "air" &&
-                  'Real-time air quality index (AQI) and pollutants. Point-based analysis. Click "Search Area" to analyze specific location.'}
-                {activeLayer === "floods" &&
-                  'Flood risk assessment based on precipitation and topography. Point-based forecast. Click "Search Area" to analyze.'}
-                {activeLayer === "temperature" &&
-                  'Temperature anomaly data showing deviation from historical averages. Point-based analysis. Click "Search Area" to analyze.'}
-                {activeLayer === "solar" &&
-                  'Solar energy potential and capacity factor estimates within 1km radius. Click "Search Area" to analyze.'}
-                {activeLayer === "ndvi" &&
-                  'Vegetation health (NDVI) from satellite imagery. Analysis based on nearest available satellite imagery. Click "Search Area" to analyze.'}
+                Real-time fire data from NASA FIRMS satellite
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              {(loadingFires ||
-                loadingAir ||
-                loadingFlood ||
-                loadingTemperature) && (
+              {(loadingFires || loadingAir || loadingFlood || loadingTemperature) && (
                 <span className="text-sm text-muted-foreground flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading...
                 </span>
               )}
-              <Button
-                onClick={handleRefresh}
-                size="sm"
-                disabled={
-                  loading ||
-                  loadingFires ||
-                  loadingAir ||
-                  loadingFlood ||
-                  loadingTemperature
-                }
+              <Button 
+                onClick={handleRefresh} 
+                size="sm" 
+                disabled={loading || loadingFires || loadingAir || loadingFlood || loadingTemperature}
               >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Search Area
-                  </>
-                )}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div
-            ref={mapContainer}
+          <div 
+            ref={mapContainer} 
             className="w-full h-[600px] rounded-lg overflow-hidden"
           />
-
-          {(loading ||
-            loadingFires ||
-            loadingAir ||
-            loadingFlood ||
-            loadingTemperature ||
-            loadingSolar ||
-            loadingNdvi) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-[2px] rounded-lg z-50 transition-all duration-300">
-              <div className="bg-card border shadow-lg p-6 rounded-xl flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm font-medium text-foreground">
-                  Loading data...
-                </p>
-              </div>
+          
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+              <Loader2 className="h-8 w-8 animate-spin text-white" />
             </div>
           )}
 
           {/* Legend - Fires */}
-          {activeLayer === "fires" && (
-            <div className="mt-4 p-5 bg-card border rounded-xl shadow-sm">
-              <h4 className="text-base font-semibold mb-3 flex items-center gap-2">
-                <Flame className="h-4 w-4 text-orange-500" />
-                Thermal Anomaly Legend
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
-                  <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-white shadow-sm" />
-                  <span className="text-sm font-medium">
-                    High Confidence (&gt;80%)
-                  </span>
+          {activeLayer === 'fires' && (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <h4 className="text-sm font-semibold mb-2">Legend</h4>
+              <div className="flex flex-wrap gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-white" />
+                  <span>High Confidence Fire</span>
                 </div>
-                <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
-                  <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white shadow-sm" />
-                  <span className="text-sm font-medium">
-                    Nominal Confidence
-                  </span>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white" />
+                  <span>Medium Confidence</span>
                 </div>
-                <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
-                  <div className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white shadow-sm" />
-                  <span className="text-sm font-medium">Low Confidence</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white" />
+                  <span>Low Confidence</span>
                 </div>
               </div>
-
-              <div className="space-y-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/50">
-                <p>
-                  <strong className="text-foreground">Data Source:</strong> NASA
-                  FIRMS (Fire Information for Resource Management System)
-                </p>
-                <p>
-                  <strong className="text-foreground">What is this?</strong>{" "}
-                  Detects "Thermal Anomalies" - this includes forest fires, but
-                  also agricultural burning (stubble) and industrial heat
-                  sources.
-                </p>
-                <p>
-                  <strong className="text-foreground">Visible Area:</strong>{" "}
-                  Stats above show total anomalies in your current map view.
-                </p>
-
+              <p className="text-xs text-muted-foreground mt-2">
+                <strong>Data source:</strong> NASA FIRMS (Fire Information for Resource Management System)
+                <br />
+                <strong>How it works:</strong> Pan/zoom the map to load fires for any region worldwide
+                <br />
+                Updated every 15 minutes • Marker size indicates fire intensity (FRP)
+                <br />
                 {stats && stats.totalFires > 1000 && (
-                  <p className="text-yellow-600 font-medium flex items-center gap-2 mt-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    Showing 1000 of {stats.totalFires} anomalies for performance
-                  </p>
+                  <span className="text-yellow-600">⚡ Showing 1000 of {stats.totalFires} fires for performance</span>
                 )}
-              </div>
+              </p>
             </div>
           )}
 
           {/* Legend - Solar Potential */}
-          {activeLayer === "solar" && (
+          {activeLayer === 'solar' && (
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <h4 className="text-sm font-semibold mb-2">Legend</h4>
               <div className="flex flex-wrap gap-4 text-xs">
@@ -1615,29 +1237,21 @@ export function ClimateMap() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                <strong>Data source:</strong> NREL PVWatts (National Renewable
-                Energy Laboratory)
+                <strong>Data source:</strong> NREL PVWatts (National Renewable Energy Laboratory)
                 <br />
-                <strong>How it works:</strong> Shows solar potential for 4kW
-                residential systems within <strong>1km radius</strong> of
-                selected point.
+                <strong>How it works:</strong> Shows solar potential for 4kW residential systems
                 <br />
-                Based on satellite solar radiation data • Click markers for
-                detailed estimates
+                Based on satellite solar radiation data • Click markers for detailed estimates
                 {loadingSolar && (
                   <>
                     <br />
-                    <span className="text-blue-600">
-                      ⏳ Loading solar data...
-                    </span>
+                    <span className="text-blue-600">⏳ Loading solar data...</span>
                   </>
                 )}
                 {solarData && solarData.length > 0 && (
                   <>
                     <br />
-                    <span className="text-green-600">
-                      ✓ Showing {solarData.length} sample points
-                    </span>
+                    <span className="text-green-600">✓ Showing {solarData.length} sample points</span>
                   </>
                 )}
               </p>
@@ -1645,89 +1259,35 @@ export function ClimateMap() {
           )}
 
           {/* Legend - Air Quality */}
-          {activeLayer === "air" && airQualityData && (
+          {activeLayer === 'air' && airQualityData && (
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <h4 className="text-sm font-semibold mb-2">Air Quality</h4>
               <div className="flex flex-wrap gap-4 text-xs mb-3">
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#00e400" }}
-                  />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#00e400' }} />
                   <span>Good (0-50)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#ffff00" }}
-                  />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#ffff00' }} />
                   <span>Moderate (51-100)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#ff7e00" }}
-                  />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#ff7e00' }} />
                   <span>Unhealthy (101-150)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: "#ff0000" }}
-                  />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#ff0000' }} />
                   <span>Very Unhealthy (151+)</span>
                 </div>
               </div>
               <div className="p-3 bg-background rounded border">
-                <p className="text-xs font-medium mb-1">
-                  Health Recommendation:
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {airQualityData.healthRecommendation}
-                </p>
+                <p className="text-xs font-medium mb-1">Health Recommendation:</p>
+                <p className="text-xs text-muted-foreground">{airQualityData.healthRecommendation}</p>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 <strong>Data source:</strong> OpenWeather Air Pollution API
-              </p>
-            </div>
-          )}
-
-          {/* Legend - Flood Risk */}
-          {activeLayer === "floods" && floodData && (
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              <h4 className="text-sm font-semibold mb-2">
-                Flood Risk Analysis
-              </h4>
-              <div className="flex flex-wrap gap-4 text-xs mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-white" />
-                  <span>Low Risk (&lt;25)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white" />
-                  <span>Moderate Risk (25-50)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white" />
-                  <span>High Risk (50-75)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-white" />
-                  <span>Extreme Risk (&gt;75)</span>
-                </div>
-              </div>
-              <div className="p-3 bg-background rounded border">
-                <p className="text-xs font-medium mb-1">Analysis Scope:</p>
-                <p className="text-xs text-muted-foreground">
-                  Risk assessment based on <strong>point-specific</strong>{" "}
-                  precipitation forecast (24h & 7-day) and local topography
-                  estimation.
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                <strong>Data source:</strong> OpenWeather Forecast API
                 <br />
-                Includes drainage capacity estimation based on elevation
+                Updated hourly • Pan map to check different locations
               </p>
             </div>
           )}
