@@ -24,7 +24,6 @@ import {
 import Link from "next/link";
 import { FloatingButtons } from "@/components/ui/floating-buttons";
 import { LocationSelector } from "@/components/ui/location-selector";
-import { AlertBell } from "@/components/AlertBell";
 import { useCountryTheme } from "@/hooks/useCountryTheme";
 
 export default function ClimateIQHome() {
@@ -38,7 +37,7 @@ export default function ClimateIQHome() {
       id: "climate-map",
       title: "Interactive Climate Map",
       description:
-        "Explore thermal anomalies, air quality, floods, temperature, solar potential, and vegetation health with real satellite data",
+        "Explore live fires, air quality, floods, temperature, solar potential, and vegetation health with real satellite data",
       icon: Map,
       gradient: "from-red-500 to-orange-600",
       href: "/climate-map",
@@ -114,7 +113,7 @@ export default function ClimateIQHome() {
             <div className="flex items-center justify-center space-x-2 mb-4">
               <Sparkles className="h-8 w-8 text-blue-600" />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                ClimateIQ AI
+                OutbackVision AI
               </h1>
             </div>
             <p className="text-gray-600 dark:text-gray-300">
@@ -214,8 +213,16 @@ export default function ClimateIQHome() {
               </div>
             </div>
             <div className="flex items-center space-x-3">
+              {/* <Link href="/community">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl border-2"
+                >
+                  Community Hub
+                </Button>
+              </Link> */}
               <LocationSelector size="sm" />
-              <AlertBell />
               {user ? (
                 <div className="flex items-center space-x-3">
                   <div className="px-3 py-1 bg-gradient-to-r from-emerald-100 to-teal-100 dark:from-emerald-900 dark:to-teal-900 rounded-full">
@@ -295,6 +302,8 @@ export default function ClimateIQHome() {
                       {!user && (
                         <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-700 w-full">
                           <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span>🔒</span>
+                            <span>Sign in to save your data</span>
                           </div>
                         </div>
                       )}
