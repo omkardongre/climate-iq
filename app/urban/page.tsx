@@ -14,11 +14,13 @@ import {
   Lightbulb,
   Camera,
   Droplets,
+  TrendingUp,
   Sun,
 } from "lucide-react";
 import { EcoAdvisor } from "@/components/urban/EcoAdvisor";
 import { WasteScanner } from "@/components/urban/WasteScanner";
 import { SmartHomeTracker } from "@/components/urban/SmartHomeTracker";
+import { Achievements } from "@/components/urban/Achievements";
 import { SolarSavingsCalculator } from "@/components/urban/SolarSavingsCalculator";
 
 export default function UrbanPage() {
@@ -43,7 +45,7 @@ export default function UrbanPage() {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="eco-advisor" className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4" />
             <span className="hidden sm:inline">Eco-Advisor</span>
@@ -63,7 +65,10 @@ export default function UrbanPage() {
             <Sun className="h-4 w-4" />
             <span className="hidden sm:inline">Solar</span>
           </TabsTrigger>
-
+          <TabsTrigger value="achievements" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden sm:inline">Achievements</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Eco-Advisor Tab */}
@@ -86,7 +91,10 @@ export default function UrbanPage() {
           <SolarSavingsCalculator />
         </TabsContent>
 
-
+        {/* Achievements Tab */}
+        <TabsContent value="achievements" className="space-y-6">
+          <Achievements />
+        </TabsContent>
       </Tabs>
     </div>
   );
