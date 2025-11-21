@@ -94,66 +94,6 @@ export async function POST(request: NextRequest) {
 
 
 
-    // ... (previous code)
-
-    // Try to get ML prediction
-    let mlPrediction = null;
-    try {
-      const { spawn } = require('child_process');
-      const path = require('path');
-      
-      // Construct arguments: N P K temp humidity ph rainfall
-      // Note: We are using estimated NPK values if SoilGrids failed, or defaults
-      // For a hackathon, we can use reasonable defaults if data is missing
-      const n = soilData?.nitrogen || 90;
-      const p = 42; // Default/Estimated
-      const k = 43; // Default/Estimated
-      const temp = weatherData.main.temp;
-      const humidity = weatherData.main.humidity;
-      const ph = soilData?.ph || 6.5;
-      const rainfall = rainfallData || 200; // Fallback if no rain
-      
-      const scriptPath = path.join(process.cwd(), 'ml', 'predict.py');
-      
-      // Wrap in a promise to await the child process
-      const getPrediction = () => new Promise((resolve, reject) => {
-        const pythonProcess = spawn('python3', [
-          scriptPath,
-          n.toString(), p.toString(), k.toString(),
-          temp.toString(), humidity.toString(),
-          ph.toString(), rainfall.toString()
-        ]);
-        
-        let dataString = '';
-        
-        pythonProcess.stdout.on('data', (data: any) => {
-          dataString += data.toString();
-        });
-        
-        pythonProcess.stderr.on('data', (data: any) => {
-          console.error(`ML Script Error: ${data}`);
-        });
-        
-        pythonProcess.on('close', (code: number) => {
-          if (code === 0) {
-            try {
-              resolve(JSON.parse(dataString));
-            } catch (e) {
-              resolve(null);
-            }
-          } else {
-            resolve(null);
-          }
-        });
-      });
-      
-      mlPrediction = await getPrediction();
-      console.log('🤖 ML Model Prediction:', mlPrediction);
-      
-    } catch (e) {
-      console.error('Failed to run ML model:', e);
-    }
-
     // Build context for Gemini
     const context = `
 Location: ${data.latitude.toFixed(2)}°N, ${data.longitude.toFixed(2)}°E
@@ -177,15 +117,6 @@ Soil Analysis (SoilGrids Satellite Data):
 - Silt: ${soilData.silt}%
 ` : ''}
 
-${mlPrediction && (mlPrediction as any).success ? `
-🤖 AI MODEL PREDICTION (Random Forest):
-- Recommended Crop: ${(mlPrediction as any).recommended_crop}
-- Confidence: ${((mlPrediction as any).confidence * 100).toFixed(1)}%
-- Top Alternatives: ${(mlPrediction as any).top_3.map((t: any) => t.crop).join(', ')}
-
-IMPORTANT: The custom ML model strongly suggests growing ${(mlPrediction as any).recommended_crop}. Please prioritize this in your recommendations if suitable.
-` : ''}
-
 Analyze this farm's conditions and recommend the TOP 3 most suitable crops.
 Consider:
 1. Climate compatibility
@@ -193,7 +124,6 @@ Consider:
 3. Water availability
 4. Market demand
 5. Crop rotation benefits (if previous crop specified)
-6. The ML Model's prediction (if available)
 
 Format as JSON array:
 [
@@ -211,7 +141,7 @@ Format as JSON array:
 
 Provide practical, region-specific recommendations.`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(context);
     const response = await result.response;
     const text = response.text();

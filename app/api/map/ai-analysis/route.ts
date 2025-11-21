@@ -37,8 +37,7 @@ export async function POST(request: NextRequest) {
     
     // Layer-specific data
     if (data.fires) {
-      const scope = data.fires.scope || 'visible area';
-      contextParts.push(`Thermal Anomaly Risk: ${data.fires.totalFires} thermal anomalies detected within ${scope} (includes fires, agriculture, industrial), ${data.fires.highConfidence} high confidence, Total fire power: ${data.fires.totalFirePower} MW`);
+      contextParts.push(`Fire Risk: ${data.fires.totalFires} active fires detected, ${data.fires.highConfidence} high confidence, Total fire power: ${data.fires.totalFirePower} MW`);
     }
     
     if (data.airQuality) {
@@ -46,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
     
     if (data.solar) {
-      contextParts.push(`Solar Potential (within 1km radius): ${data.solar.suitability} (${data.solar.averageRadiation.toFixed(2)} kWh/m²/day), Average annual production: ${data.solar.averageProduction.toFixed(0)} kWh/year, Capacity factor: ${data.solar.averageCapacityFactor.toFixed(1)}%`);
+      contextParts.push(`Solar Potential: ${data.solar.suitability} (${data.solar.averageRadiation.toFixed(2)} kWh/m²/day), Average annual production: ${data.solar.averageProduction.toFixed(0)} kWh/year, Capacity factor: ${data.solar.averageCapacityFactor.toFixed(1)}%`);
     }
     
     if (data.flood) {
@@ -64,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Layer-specific prompt
     let focusArea = '';
     if (activeLayer === 'fires') {
-      focusArea = 'Focus on thermal anomaly assessment (distinguishing between wildfires, agricultural burning, and industrial heat), fire risk, and air quality impact.';
+      focusArea = 'Focus on fire risk assessment, wildfire prevention, and emergency preparedness for this region.';
     } else if (activeLayer === 'air') {
       focusArea = 'Focus on air quality impacts, health recommendations, and pollution mitigation strategies for this location.';
     } else if (activeLayer === 'solar') {

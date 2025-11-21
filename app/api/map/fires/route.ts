@@ -50,8 +50,6 @@ export async function GET(request: NextRequest) {
 
       const bounds: [number, number, number, number] = [minLon, minLat, maxLon, maxLat];
       const fires = await getActiveFires(bounds, days);
-      console.log('🔥 Fire API Response (First 2 items):', JSON.stringify(fires.slice(0, 2), null, 2));
-
       const stats = calculateFireStats(fires);
       const risk = getFireRiskLevel(stats);
 
