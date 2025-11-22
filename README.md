@@ -1,128 +1,135 @@
-# 🌍 ClimateIQ AI - Climate Intelligence Platform
+# 🌍 ClimateIQ AI - Intelligent Climate Action Platform
 
-AI-powered platform democratizing satellite climate data through multi-agent AI systems and real-time environmental intelligence.
-
----
-
-## 🚀 Features
-
-### 🗺️ Interactive Climate Map
-
-- 6 real-time satellite layers (NASA FIRMS fires, OpenWeather air quality/temperature, NREL solar, Planet vegetation, flood risk)
-- AI Climate Alert System with 5 severity levels
-- Auto-resets to GPS location when switching tabs
-
-### 🌾 Smart Agriculture Hub
-
-- **Multi-Agent Crop Advisor**: 4 specialized Gemini AI agents (Soil, Weather, Market, Orchestrator) + Random Forest ML model
-- **Carbon Calculator**: Interactive UI with IPCC factors, 50+ countries supported
-- **Solar Irrigation**: NREL PVWatts API + AI subsidy search
-
-### 🏙️ Urban Sustainability Hub
-
-- **Gemini Vision Waste Scanner**: Privacy-first image classification (no storage)
-- **Smart Home Tracker**: Consumption tracking + AI cost optimization
-- **Solar Savings Calculator**: 4-step wizard with ROI analysis
-- **Eco-Advisor**: Weather-based tips + city-specific green initiatives
-
-### 👥 Community Hub
-
-- Storyblok CMS learning modules (Climate Basics, Sustainability)
-- AI-generated quizzes with modal UI
-- Real-time progress tracking
-
-### 🤖 AI Climate Mentor
-
-- Conversational Gemini assistant with country-specific responses
-
-### ♿ Accessibility
-
-- Draggable toolbar with keyboard shortcuts, voice navigation, high contrast themes
+A comprehensive climate intelligence platform combining real-time environmental data, AI-powered tools, and community-driven learning to empower climate action.
 
 ---
 
-## 🛠️ Tech Stack
+## 🚀 **Key Features**
 
-**Frontend:** Next.js 14, React, TypeScript, Tailwind CSS, shadcn/ui
+### 🏠 **Home Dashboard**
 
-**Backend:** Supabase (PostgreSQL, Auth, RLS policies)
+- **5 Feature Cards**: Interactive climate map, smart agriculture hub, urban sustainability hub, community hub, AI climate mentor
+- **Location-Based**: Personalized content based on your region
+- **Quick Navigation**: Easy access to all major features
 
-**AI/ML:**
+### 🗺️ **Interactive Climate Map**
 
-- Google Gemini 2.0 Flash Exp (multi-agent coordination, web search, analysis)
-- Custom Random Forest Classifier (crop prediction)
-- Gemini Vision (waste classification)
+- **6 Real Data Layers**: NASA FIRMS fires, OpenWeather air quality, flood risk, temperature anomalies, NREL solar potential, Planet NDVI vegetation
+- **AI Region Analysis**: Gemini-powered climate insights for any location
+- **Future-Proof Score**: AI-generated climate resilience ratings
+- **Real-time Updates**: Live satellite and weather data
 
-**Climate APIs:** NASA FIRMS, OpenWeather, NREL PVWatts, Planet API, SoilGrids, IEA/IPCC 2025
+### 🌾 **Smart Agriculture Hub**
 
-**Maps:** Mapbox GL JS
+- **AI Crop Planner**: Gemini AI recommendations using SoilGrids soil data and OpenWeather climate
+- **Carbon Tracker**: IPCC emission factors for fuel, fertilizer, livestock with AI reduction tips
+- **Solar Irrigation**: NREL PVWatts API for solar pump sizing and ROI calculation
+- **Community**: Storyblok CMS for agricultural news and updates
+
+### 🏙️ **Urban Sustainability Hub**
+
+- **5 Tools**: Eco-advisor (AI tips), waste scanner (Gemini Vision), smart home tracker, solar analysis, achievements
+- **OpenWeather API**: Live air quality and weather-based recommendations
+- **NREL Solar Calculator**: Rooftop solar potential and ROI analysis
+- **Gamification**: Streaks, badges, and leaderboard for sustainability actions
+
+### 👥 **Community Hub & Learning System**
+
+- **9 Educational Lessons**: Storyblok-powered content with rich text and images
+  - 5 Climate Basics lessons
+  - 4 Sustainability lessons
+- **Dedicated Lesson Pages**: Full-screen reading experience with progress tracking
+- **Per-Lesson Progress**: Track completion time and status for each lesson
+- **AI-Generated Quizzes**: Gemini creates custom quizzes from lesson content
+- **Community Content**: Events, news, and expert updates from Storyblok CMS
+- **Reset Progress**: Start learning modules fresh anytime
+
+### 🤖 **AI Climate Mentor**
+
+- **Conversational AI**: Personalized climate advice powered by Gemini
+- **Context-Aware**: Responses based on your location and needs
+- **Voice Input**: Speak your questions naturally
+- **Text-to-Speech**: Listen to AI responses
+
+### ♿ **Comprehensive Accessibility**
+
+- **Keyboard Navigation**: Full keyboard shortcuts (Alt+1-5, Alt+H, Ctrl+/)
+- **Voice Navigation**: Voice commands for page navigation
+- **High Contrast**: Optimized visibility across all themes
+- **Screen Reader**: Semantic HTML with ARIA labels
+- **Focus Management**: Proper tab order and focus indicators
 
 ---
 
-## 📦 Quick Start
+## 🛠️ **Tech Stack**
+
+- **Framework**: Next.js 14 (App Router), React, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui components
+- **CMS**: Storyblok (Community content, Learning lessons)
+- **AI**: Google Gemini (Quiz generation, recommendations, analysis)
+- **Database**: Supabase (Auth, Progress tracking, User data)
+- **Maps**: Mapbox GL JS
+- **Real APIs**: NASA FIRMS, OpenWeather, NREL PVWatts, Planet, SoilGrids
+
+---
+
+## 📦 **Quick Start**
 
 ```bash
-# Clone & install
-git clone git@github.com:omkardongre/ClimateIQ-AI.git
+# Clone repository
+git clone https://github.com/yourusername/ClimateIQ-AI.git
 cd ClimateIQ-AI
+
+# Install dependencies
 npm install
 
-# Environment setup
-cp env.example .env.local
+# Set up environment variables
+cp .env.example .env.local
+# Add your API keys (see API Keys section below)
 
-# Run the db.sql migration script in the Supabase SQL Editor
+# Run database migration in Supabase SQL Editor
 
-# Start dev server
+# Start development server
 npm run dev
 ```
 
 Visit `http://localhost:3000`
 
----
+## 📊 **Real Data Sources**
 
-## 🌟 Key Highlights
-
-✅ **Production Multi-Agent AI**: 4 specialized Gemini agents with autonomous coordination, conflict resolution, confidence scoring
-
-✅ **100% Real Data**: Zero dummy/fallback data - transparent error messages when APIs fail
-
-✅ **Hybrid ML + GenAI**: Random Forest predictions inform Gemini agents for nuanced recommendations
-
-✅ **Global Adaptability**: Auto-detects country from GPS, adapts currency/data sources/emission factors for 50+ countries
-
-✅ **Privacy-First**: Waste scanner analyzes images instantly without storage/tracking
-
-✅ **35+ API Routes**: Comprehensive backend architecture with intelligent caching
+- **NASA FIRMS**: Satellite fire detection
+- **OpenWeather**: Air quality index, weather data
+- **NREL PVWatts**: Solar potential calculations
+- **Planet API**: NDVI vegetation index
+- **SoilGrids**: Soil properties (pH, organic carbon)
+- **IPCC**: Emission factors for carbon calculations
+- **Storyblok**: Educational content and community updates
 
 ---
 
-## 📊 Real-Time Data Sources
+## 🚀 **Deployment**
 
-- **NASA FIRMS**: Satellite fire/thermal anomaly detection
-- **OpenWeather**: Weather, AQI, precipitation forecasts
-- **NREL PVWatts**: Solar irradiance calculations
-- **Planet API**: Vegetation health (NDVI) metadata
-- **SoilGrids**: 250m resolution soil properties (pH, nutrients, organic carbon)
-- **IEA/IPCC 2025**: Emission factors for 50+ countries
-- **Storyblok**: Educational content CMS
+**Vercel (Recommended):**
 
----
+1. Push to GitHub
+2. Connect to Vercel
+3. Add environment variables
+4. Deploy automatically
 
-## 🚀 Deployment
+## 📝 **License**
 
-**Vercel:**
-
-```bash
-git push origin main
-# Connect to Vercel, add environment variables, auto-deploy
-```
+MIT License - Feel free to use for your projects
 
 ---
 
-## 📝 License
+## 🙏 **Credits**
 
-MIT License
+- **Storyblok** - Headless CMS
+- **Google Gemini** - AI intelligence
+- **Supabase** - Backend infrastructure
+- **shadcn/ui** - Component library
+- **Next.js** - React framework
 
 ---
 
-**Built for climate action through AI and satellite data** 🌍
+**Built with ❤️ for climate action and environmental awareness**
