@@ -113,7 +113,7 @@ export default function ClimateIQHome() {
             <div className="flex items-center justify-center space-x-2 mb-4">
               <Sparkles className="h-8 w-8 text-blue-600" />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                OutbackVision AI
+                ClimateIQ AI
               </h1>
             </div>
             <p className="text-gray-600 dark:text-gray-300">

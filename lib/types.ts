@@ -1,4 +1,4 @@
-// Core types for OutbackVision AI application
+// Core types for ClimateIQ AI application
 
 export interface User {
   id: string;

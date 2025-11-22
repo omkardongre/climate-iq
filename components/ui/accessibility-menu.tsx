@@ -22,7 +22,7 @@ interface AccessibilityMenuProps {
 export function AccessibilityMenu({ className }: AccessibilityMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { getKeyboardShortcuts } = useKeyboardNavigation();
-  
+
   const keyboardShortcuts = getKeyboardShortcuts();
 
   return (
@@ -49,7 +49,7 @@ export function AccessibilityMenu({ className }: AccessibilityMenuProps) {
               Accessibility Options
             </CardTitle>
             <CardDescription>
-              Make OutbackVision AI work better for you
+              Make ClimateIQ AI work better for you
             </CardDescription>
           </CardHeader>
 

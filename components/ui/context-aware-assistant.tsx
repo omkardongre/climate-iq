@@ -185,7 +185,7 @@ export function ContextAwareAssistant({
         )
         ?.join(" ") || "";
 
-    const projectContext = `OutbackVision AI is an intelligent climate action ecosystem that transforms climate awareness into measurable action through AI-powered tools. The platform includes:
+    const projectContext = `ClimateIQ AI is an intelligent climate action ecosystem that transforms climate awareness into measurable action through AI-powered tools. The platform includes:
 - AI Vision Scanner: Instant environmental impact analysis of objects with carbon footprint calculations
 - Real-time Climate Dashboard: Hyper-local environmental data with weather and air quality
 - AI Climate Mentor: Conversational guidance for climate questions and actionable advice
