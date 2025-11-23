@@ -70,6 +70,7 @@ export function ClimateMap() {
   const [showAiPanel, setShowAiPanel] = useState(false);
   const moveTimeout = useRef<NodeJS.Timeout | null>(null);
   const lastBounds = useRef<{ west: number; east: number; north: number; south: number } | null>(null);
+  const [showSearchButton, setShowSearchButton] = useState(false);
   const centerMarker = useRef<mapboxgl.Marker | null>(null);
   const activeLayerRef = useRef(activeLayer);
 
@@ -79,35 +80,41 @@ export function ClimateMap() {
   }, [activeLayer]);
 
   // Update center marker (defined before useEffect)
-  const updateCenterMarker = () => {
-    if (!map.current) return;
+// Update center marker (defined before useEffect)
+// Update center marker (defined before useEffect)
+const updateCenterMarker = (layer?: string) => {
+  if (!map.current) return;
+  
+  const currentLayer = layer || activeLayerRef.current;
+  const center = map.current.getCenter();
+  
+  // Remove existing center marker
+  if (centerMarker.current) {
+    centerMarker.current.remove();
+  }
+  
+  // Only show center marker for non-fire layers
+  // For fires, we don't show the blue pointer by default (only on click)
+  // For others, we show it to indicate the center of analysis
+  // UPDATE: User requested pointer for ALL layers including fires
+  if (true) {
+    // Create a custom marker element
+    const el = document.createElement('div');
+    el.className = 'center-marker';
+    el.style.width = '24px';
+    el.style.height = '24px';
+    el.style.borderRadius = '50%';
+    el.style.backgroundColor = '#3b82f6';
+    el.style.border = '3px solid white';
+    el.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
+    el.style.cursor = 'pointer';
+    el.style.transition = 'all 0.3s ease';
     
-    const center = map.current.getCenter();
-    
-    // Remove existing center marker
-    if (centerMarker.current) {
-      centerMarker.current.remove();
-    }
-    
-    // Only show center marker for non-fire layers
-    if (activeLayerRef.current !== 'fires') {
-      // Create a custom marker element
-      const el = document.createElement('div');
-      el.className = 'center-marker';
-      el.style.width = '24px';
-      el.style.height = '24px';
-      el.style.borderRadius = '50%';
-      el.style.backgroundColor = '#3b82f6';
-      el.style.border = '3px solid white';
-      el.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
-      el.style.cursor = 'pointer';
-      el.style.transition = 'all 0.3s ease';
-      
-      centerMarker.current = new mapboxgl.Marker(el)
-        .setLngLat([center.lng, center.lat])
-        .addTo(map.current);
-    }
-  };
+    centerMarker.current = new mapboxgl.Marker(el)
+      .setLngLat([center.lng, center.lat])
+      .addTo(map.current);
+  }
+};
 
   // Initialize map
   useEffect(() => {
@@ -162,41 +169,44 @@ export function ClimateMap() {
         mapInstance.on('click', (e) => {
           const currentLayer = activeLayerRef.current;
           console.log('Map clicked, current layer:', currentLayer);
-          if (currentLayer !== 'fires') {
-            // Update center marker to clicked location with smooth transition
-            if (centerMarker.current) {
-              const element = centerMarker.current.getElement();
-              if (element) {
-                element.style.transition = 'all 0.3s ease';
-              }
-              centerMarker.current.setLngLat([e.lngLat.lng, e.lngLat.lat]);
-            } else {
-              // Create marker at clicked location
-              const el = document.createElement('div');
-              el.className = 'center-marker';
-              el.style.width = '24px';
-              el.style.height = '24px';
-              el.style.borderRadius = '50%';
-              el.style.backgroundColor = '#3b82f6';
-              el.style.border = '3px solid white';
-              el.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
-              el.style.cursor = 'pointer';
-              el.style.transition = 'all 0.3s ease';
-              
-              centerMarker.current = new mapboxgl.Marker(el)
-                .setLngLat([e.lngLat.lng, e.lngLat.lat])
-                .addTo(mapInstance);
+          // Always update center marker on click, even for fires
+          // Update center marker to clicked location with smooth transition
+          if (centerMarker.current) {
+            const element = centerMarker.current.getElement();
+            if (element) {
+              element.style.transition = 'all 0.3s ease';
             }
+            centerMarker.current.setLngLat(e.lngLat);
+          } else {
+            // Create a custom marker element
+            const el = document.createElement('div');
+            el.className = 'center-marker';
+            el.style.width = '24px';
+            el.style.height = '24px';
+            el.style.borderRadius = '50%';
+            el.style.backgroundColor = '#3b82f6';
+            el.style.border = '3px solid white';
+            el.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
+            el.style.cursor = 'pointer';
+            el.style.transition = 'all 0.3s ease';
             
-            // Reload data for clicked location
-            console.log('Reloading data for clicked location');
-            if (currentLayer === 'air') {
-              loadAirQualityData();
-            } else if (currentLayer === 'floods') {
-              loadFloodData();
-            } else if (currentLayer === 'temperature') {
-              loadTemperatureData();
-            }
+            centerMarker.current = new mapboxgl.Marker(el)
+              .setLngLat(e.lngLat)
+              .addTo(mapInstance);
+          }
+          
+          console.log('Reloading data for clicked location');
+          if (currentLayer === 'fires') {
+            // Do NOT reload data for fires on click. 
+            // Just show the marker (already done above) and maybe a popup if we had point data.
+            // Since we don't have point-specific data API for a single click without reloading,
+            // we rely on the already loaded markers.
+            console.log('Click on fire layer - keeping existing data');
+          } else {
+            // For all other layers (air, floods, etc.), just update the marker
+            // and let the "Search Area" button trigger the data load.
+            // This ensures consistent interaction across all tabs.
+            console.log(`Click on ${currentLayer} layer - marker updated, waiting for search`);
           }
         });
       });
@@ -222,7 +232,7 @@ export function ClimateMap() {
             south: bounds.getSouth(),
           };
           
-          // Only reload if bounds changed significantly (>10% of viewport)
+          // Only show "Search This Area" button if bounds changed significantly
           if (lastBounds.current) {
             const widthChange = Math.abs(currentBounds.east - currentBounds.west);
             const heightChange = Math.abs(currentBounds.north - currentBounds.south);
@@ -232,32 +242,21 @@ export function ClimateMap() {
             const widthDiff = Math.abs(widthChange - lastWidth) / lastWidth;
             const heightDiff = Math.abs(heightChange - lastHeight) / lastHeight;
             
-            // Skip reload if change is less than 10%
-            if (widthDiff < 0.1 && heightDiff < 0.1) {
-              console.log('Bounds change too small, skipping reload');
+            // Skip if change is very small (lowered threshold to 1% to make button appear more easily)
+            if (widthDiff < 0.01 && heightDiff < 0.01) {
               return;
             }
           }
           
-          console.log('Map moved significantly, reloading data for layer:', activeLayerRef.current);
+          console.log('Map moved, showing search button');
+          setShowSearchButton(true);
           lastBounds.current = currentBounds;
           
-          // Use ref to get current layer
-          const currentLayer = activeLayerRef.current;
-          
-          if (currentLayer === 'fires') {
-            loadFireData();
-          } else if (currentLayer === 'air') {
-            updateCenterMarker();
-            loadAirQualityData();
-          } else if (currentLayer === 'floods') {
-            updateCenterMarker();
-            loadFloodData();
-          } else if (currentLayer === 'temperature') {
-            updateCenterMarker();
-            loadTemperatureData();
-          }
-        }, 3000); // 3 seconds debounce
+          // Auto-load only for non-heavy layers if needed, but for consistency let's use manual refresh for all
+          // except maybe air quality which is fast? 
+          // User requested manual refresh to avoid "half screen black" and confusion.
+          // So we will rely on the button.
+        }, 500); // Reduced debounce since we just show a button now
       });
 
       mapInstance.on('error', (e) => {
@@ -306,22 +305,34 @@ export function ClimateMap() {
     if (!map.current) return;
 
     setLoadingFires(true);
+    setShowSearchButton(false); // Hide button when loading
     try {
       const bounds = map.current.getBounds();
-      if (!bounds) return;
-      
+    if (!bounds) return;
+    
+    const zoom = map.current.getZoom();
+    const center = map.current.getCenter();
+    
+    let url = '';
+    
+    // If zoomed out (zoom < 8), restrict analysis to 100km radius around center
+    // This prevents "Extreme Risk" from showing up just because the view covers a whole continent
+    if (zoom < 8) {
+      console.log(`Zoom level ${zoom} is low. Using 100km radius search around center.`);
+      url = `/api/map/fires?mode=point&lat=${center.lat}&lon=${center.lng}&radius=100&days=3`;
+    } else {
       console.log('Fetching fires for bounds:', {
         west: bounds.getWest().toFixed(2),
         south: bounds.getSouth().toFixed(2),
         east: bounds.getEast().toFixed(2),
         north: bounds.getNorth().toFixed(2),
       });
-      
-      const response = await fetch(
-        `/api/map/fires?mode=bounds&minLon=${bounds.getWest()}&minLat=${bounds.getSouth()}&maxLon=${bounds.getEast()}&maxLat=${bounds.getNorth()}&days=1`
-      );
+      url = `/api/map/fires?mode=bounds&minLon=${bounds.getWest()}&minLat=${bounds.getSouth()}&maxLon=${bounds.getEast()}&maxLat=${bounds.getNorth()}&days=3`;
+    }
+    
+    const response = await fetch(url);
 
-      const data = await response.json();
+    const data = await response.json();
       
       console.log(`Received ${data.fires?.length || 0} fires`);
       
@@ -338,8 +349,10 @@ export function ClimateMap() {
     }
   };
 
-  // Store fire marker references
+  // Store marker references
   const fireMarkerRefs = useRef<mapboxgl.Marker[]>([]);
+  const solarMarkerRefs = useRef<mapboxgl.Marker[]>([]);
+  const ndviMarkerRefs = useRef<mapboxgl.Marker[]>([]);
 
   // Update fire markers on map (optimized)
   const updateFireMarkers = (fireData: FireData[]) => {
@@ -385,15 +398,17 @@ export function ClimateMap() {
       el.style.cursor = 'pointer';
 
       // Create popup
-      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+      const popupContent = `
         <div class="p-2">
-          <h3 class="font-bold text-sm mb-1">Active Fire</h3>
-          <p class="text-xs"><strong>Brightness:</strong> ${fire.brightness}K</p>
-          <p class="text-xs"><strong>Power:</strong> ${fire.frp} MW</p>
-          <p class="text-xs"><strong>Confidence:</strong> ${fire.confidence}</p>
+          <h3 class="font-bold text-sm mb-1">Thermal Anomaly</h3>
+          ${fire.brightness !== undefined ? `<p class="text-xs"><strong>Brightness:</strong> ${fire.brightness}K</p>` : ''}
+          ${fire.frp !== undefined ? `<p class="text-xs"><strong>Power:</strong> ${fire.frp} MW</p>` : ''}
+          ${fire.confidence !== undefined && fire.confidence !== 'n' ? `<p class="text-xs"><strong>Confidence:</strong> ${fire.confidence}</p>` : ''}
           <p class="text-xs"><strong>Date:</strong> ${fire.acq_date} ${fire.acq_time}</p>
         </div>
-      `);
+      `;
+
+      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent);
 
       const marker = new mapboxgl.Marker(el)
         .setLngLat([fire.longitude, fire.latitude])
@@ -501,52 +516,60 @@ export function ClimateMap() {
     if (!map.current) return;
     setLoadingSolar(true);
     try {
-      const bounds = map.current.getBounds();
-      if (!bounds) {
-        setLoadingSolar(false);
-        return;
+      // Get location from marker if it exists, otherwise use map center
+      let lat, lng;
+      if (centerMarker.current) {
+        const lngLat = centerMarker.current.getLngLat();
+        lat = lngLat.lat;
+        lng = lngLat.lng;
+      } else {
+        const center = map.current.getCenter();
+        lat = center.lat;
+        lng = center.lng;
       }
-      const boundsStr = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
       
-      console.log('Fetching solar potential for bounds:', boundsStr);
-      const response = await fetch(`/api/climate/solar-potential?bounds=${boundsStr}`);
+      console.log('Fetching solar potential for point:', lat.toFixed(4), lng.toFixed(4));
+      // Use 1km radius as requested
+      const response = await fetch(`/api/climate/solar-potential?mode=point&lat=${lat}&lon=${lng}&radius=1`);
       const data = await response.json();
       
       if (data.solarData && data.solarData.length > 0) {
         setSolarData(data.solarData);
         
-        // Add solar markers to map
-        data.solarData.forEach((point: any) => {
-          const el = document.createElement('div');
-          el.className = 'solar-marker';
-          
-          // Color based on solar radiation (kWh/m²/day)
-          const radiation = point.solarRadiation;
-          let color = '#fbbf24'; // yellow
-          if (radiation > 6) color = '#f59e0b'; // orange
-          if (radiation > 7) color = '#dc2626'; // red
-          
-          el.style.width = '16px';
-          el.style.height = '16px';
-          el.style.borderRadius = '50%';
-          el.style.backgroundColor = color;
-          el.style.border = '2px solid white';
-          el.style.boxShadow = '0 0 8px rgba(0,0,0,0.3)';
-          
-          const marker = new mapboxgl.Marker(el)
-            .setLngLat([point.lng, point.lat])
-            .setPopup(
-              new mapboxgl.Popup({ offset: 25 }).setHTML(`
-                <div style="padding: 8px;">
-                  <strong>☀️ Solar Potential</strong><br/>
-                  <strong>Annual Production:</strong> ${point.annualProduction.toFixed(0)} kWh/year<br/>
-                  <strong>Solar Radiation:</strong> ${point.solarRadiation.toFixed(2)} kWh/m²/day<br/>
-                  <strong>Capacity Factor:</strong> ${point.capacityFactor.toFixed(1)}%
-                </div>
-              `)
-            )
-            .addTo(map.current!);
-        });
+          // Add solar markers to map
+          data.solarData.forEach((point: any) => {
+            const el = document.createElement('div');
+            el.className = 'solar-marker';
+            
+            // Color based on solar radiation (kWh/m²/day)
+            const radiation = point.solarRadiation;
+            let color = '#fbbf24'; // yellow
+            if (radiation > 6) color = '#f59e0b'; // orange
+            if (radiation > 7) color = '#dc2626'; // red
+            
+            el.style.width = '16px';
+            el.style.height = '16px';
+            el.style.borderRadius = '50%';
+            el.style.backgroundColor = color;
+            el.style.border = '2px solid white';
+            el.style.boxShadow = '0 0 8px rgba(0,0,0,0.3)';
+            
+            const marker = new mapboxgl.Marker(el)
+              .setLngLat([point.lng, point.lat])
+              .setPopup(
+                new mapboxgl.Popup({ offset: 25 }).setHTML(`
+                  <div style="padding: 8px;">
+                    <strong>☀️ Solar Potential</strong><br/>
+                    <strong>Annual Production:</strong> ${point.annualProduction.toFixed(0)} kWh/year<br/>
+                    <strong>Solar Radiation:</strong> ${point.solarRadiation.toFixed(2)} kWh/m²/day<br/>
+                    <strong>Capacity Factor:</strong> ${point.capacityFactor.toFixed(1)}%
+                  </div>
+                `)
+              )
+              .addTo(map.current!);
+            
+            solarMarkerRefs.current.push(marker);
+          });
       }
     } catch (err: any) {
       console.error('Error loading solar data:', err);
@@ -590,21 +613,23 @@ export function ClimateMap() {
       el.style.border = '3px solid white';
       el.style.boxShadow = '0 0 10px rgba(0,0,0,0.4)';
       
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([data.lng, data.lat])
-        .setPopup(
-          new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div style="padding: 8px;">
-              <strong>🌿 Vegetation Health</strong><br/>
-              <strong>NDVI:</strong> ${data.ndvi.toFixed(3)}<br/>
-              <strong>Health:</strong> ${data.healthLevel}<br/>
-              <strong>Land Cover:</strong> ${data.landCover}<br/>
-              <strong>Cloud Cover:</strong> ${data.cloudCover.toFixed(1)}%<br/>
-              <small>Updated: ${new Date(data.lastUpdated).toLocaleDateString()}</small>
-            </div>
-          `)
-        )
-        .addTo(map.current!);
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat([data.lng, data.lat])
+          .setPopup(
+            new mapboxgl.Popup({ offset: 25 }).setHTML(`
+              <div style="padding: 8px;">
+                <strong>🌿 Vegetation Health</strong><br/>
+                <strong>NDVI:</strong> ${data.ndvi.toFixed(3)}<br/>
+                <strong>Health:</strong> ${data.healthLevel}<br/>
+                <strong>Land Cover:</strong> ${data.landCover}<br/>
+                <strong>Cloud Cover:</strong> ${data.cloudCover.toFixed(1)}%<br/>
+                <small>Updated: ${new Date(data.lastUpdated).toLocaleDateString()}</small>
+              </div>
+            `)
+          )
+          .addTo(map.current!);
+          
+        ndviMarkerRefs.current.push(marker);
     } catch (err: any) {
       console.error('Error loading NDVI data:', err);
       // Show error to user
@@ -622,6 +647,8 @@ export function ClimateMap() {
     try {
       const center = map.current.getCenter();
       const bounds = map.current.getBounds();
+      const zoom = map.current.getZoom();
+      
       if (!bounds) {
         setLoadingAi(false);
         return;
@@ -632,19 +659,28 @@ export function ClimateMap() {
         location: {
           lat: center.lat,
           lon: center.lng,
-          bounds: {
+          // If zoomed out, don't send full bounds, just send center context
+          bounds: zoom < 8 ? undefined : {
             north: bounds.getNorth(),
             south: bounds.getSouth(),
             east: bounds.getEast(),
             west: bounds.getWest(),
           },
+          radius: zoom < 8 ? 100 : undefined // 100km radius if zoomed out
         },
         activeLayer: activeLayer, // Tell AI which layer is active
       };
 
       // Add data for the active layer
-      if (activeLayer === 'fires' && stats) {
-        regionData.fires = stats;
+      if (activeLayer === 'fires') {
+        // Use the stats we already have (which are now correctly scoped by loadFireData)
+        if (stats) {
+          regionData.fires = {
+            ...stats,
+            // Add note about scope
+            scope: zoom < 8 ? '100km radius' : 'visible area'
+          };
+        }
       } else if (activeLayer === 'air' && airQualityData) {
         regionData.airQuality = airQualityData;
       } else if (activeLayer === 'floods' && floodData) {
@@ -693,46 +729,45 @@ export function ClimateMap() {
   const handleLayerChange = (layer: 'fires' | 'air' | 'floods' | 'temperature' | 'solar' | 'ndvi') => {
     setActiveLayer(layer);
     
-    // Show/hide fire markers properly
-    fireMarkerRefs.current.forEach(marker => {
-      const element = marker.getElement();
-      if (element) {
-        element.style.display = layer === 'fires' ? 'block' : 'none';
-      }
-    });
+    // Clear all layer-specific markers
+    fireMarkerRefs.current.forEach(marker => marker.remove());
+    fireMarkerRefs.current = [];
     
+    solarMarkerRefs.current.forEach(marker => marker.remove());
+    solarMarkerRefs.current = [];
+    
+    ndviMarkerRefs.current.forEach(marker => marker.remove());
+    ndviMarkerRefs.current = [];
+    
+    // Load data for selected layer
     // Load data for selected layer
     if (layer === 'fires') {
       // Remove center marker for fire layer
-      if (centerMarker.current) {
-        centerMarker.current.remove();
-        centerMarker.current = null;
-      }
+      updateCenterMarker(layer);
       loadFireData();
     } else if (layer === 'air') {
-      updateCenterMarker();
+      updateCenterMarker(layer);
       loadAirQualityData();
     } else if (layer === 'floods') {
-      updateCenterMarker();
+      updateCenterMarker(layer);
       loadFloodData();
     } else if (layer === 'temperature') {
-      updateCenterMarker();
+      updateCenterMarker(layer);
       loadTemperatureData();
     } else if (layer === 'solar') {
       // Remove center marker for solar layer (shows grid)
-      if (centerMarker.current) {
-        centerMarker.current.remove();
-        centerMarker.current = null;
-      }
+      // Actually, let's keep it consistent - show marker for search center
+      updateCenterMarker(layer);
       loadSolarData();
     } else if (layer === 'ndvi') {
-      updateCenterMarker();
+      updateCenterMarker(layer);
       loadNdviData();
     }
   };
 
   // Refresh data
   const handleRefresh = () => {
+    setShowSearchButton(false);
     if (activeLayer === 'fires') {
       loadFireData();
     } else if (activeLayer === 'air') {
@@ -768,7 +803,7 @@ export function ClimateMap() {
   }
 
   const layerConfig = [
-    { id: 'fires', label: 'Fires', icon: Flame, color: 'text-orange-500', available: true },
+    { id: 'fires', label: 'Thermal Anomalies', icon: Flame, color: 'text-orange-500', available: true },
     { id: 'air', label: 'Air Quality', icon: Wind, color: 'text-blue-500', available: true },
     { id: 'floods', label: 'Flood Risk', icon: Waves, color: 'text-blue-600', available: true },
     { id: 'temperature', label: 'Temperature', icon: Thermometer, color: 'text-red-500', available: true },
@@ -937,31 +972,33 @@ export function ClimateMap() {
         </Card>
       )}
 
-      {/* Stats Panel - Fires */}
       {activeLayer === 'fires' && stats && risk && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <div className="col-span-full mb-2">
+             <h3 className="text-sm font-semibold text-muted-foreground">Visible Area Summary (All Anomalies)</h3>
+          </div>
+          <Card title="Total thermal anomalies detected in the current visible area.">
             <CardHeader className="pb-3">
-              <CardDescription>Total Fires</CardDescription>
+              <CardDescription>Total Anomalies</CardDescription>
               <CardTitle className="text-3xl">{stats.totalFires}</CardTitle>
             </CardHeader>
           </Card>
           
-          <Card>
+          <Card title="Anomalies with >80% confidence or 'high' flag. Most detections are 'nominal' and not counted here.">
             <CardHeader className="pb-3">
               <CardDescription>High Confidence</CardDescription>
               <CardTitle className="text-3xl text-red-500">{stats.highConfidence}</CardTitle>
             </CardHeader>
           </Card>
           
-          <Card>
+          <Card title="Total Fire Radiative Power (MW) - a measure of intensity.">
             <CardHeader className="pb-3">
               <CardDescription>Fire Power</CardDescription>
               <CardTitle className="text-3xl">{stats.totalFirePower} MW</CardTitle>
             </CardHeader>
           </Card>
           
-          <Card>
+          <Card title="Calculated risk based on density and intensity of anomalies.">
             <CardHeader className="pb-3">
               <CardDescription>Risk Level</CardDescription>
               <div className="flex items-center gap-2">
@@ -1125,7 +1162,7 @@ export function ClimateMap() {
             </CardHeader>
           </Card>
           
-          <Card>
+          <Card title="Average capacity factor, representing the actual output relative to maximum possible output.">
             <CardHeader className="pb-3">
               <CardDescription>Avg Capacity Factor</CardDescription>
               <CardTitle className="text-3xl">
@@ -1134,7 +1171,7 @@ export function ClimateMap() {
             </CardHeader>
           </Card>
           
-          <Card>
+          <Card title="Number of data points used to calculate solar potential in the visible area.">
             <CardHeader className="pb-3">
               <CardDescription>Data Points</CardDescription>
               <CardTitle className="text-3xl">{solarData.length}</CardTitle>
@@ -1150,11 +1187,20 @@ export function ClimateMap() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Flame className="h-5 w-5 text-orange-500" />
-                Live Climate Map
+                {activeLayer === 'fires' && <><Flame className="h-5 w-5 text-orange-500" /> Thermal Anomalies Map</>}
+                {activeLayer === 'air' && <><Wind className="h-5 w-5 text-blue-500" /> Air Quality Map</>}
+                {activeLayer === 'floods' && <><Waves className="h-5 w-5 text-blue-600" /> Flood Risk Map</>}
+                {activeLayer === 'temperature' && <><Thermometer className="h-5 w-5 text-red-500" /> Temperature Map</>}
+                {activeLayer === 'solar' && <><Sun className="h-5 w-5 text-yellow-500" /> Solar Potential Map</>}
+                {activeLayer === 'ndvi' && <><Leaf className="h-5 w-5 text-green-500" /> Vegetation Health Map</>}
               </CardTitle>
               <CardDescription>
-                Real-time fire data from NASA FIRMS satellite
+                {activeLayer === 'fires' && 'Real-time thermal data from NASA FIRMS. Shows anomalies within 100km radius (zoomed out) or visible area. Click "Search Area" to analyze.'}
+                {activeLayer === 'air' && 'Real-time air quality index (AQI) and pollutants. Point-based analysis. Click "Search Area" to analyze specific location.'}
+                {activeLayer === 'floods' && 'Flood risk assessment based on precipitation and topography. Point-based forecast. Click "Search Area" to analyze.'}
+                {activeLayer === 'temperature' && 'Temperature anomaly data showing deviation from historical averages. Point-based analysis. Click "Search Area" to analyze.'}
+                {activeLayer === 'solar' && 'Solar energy potential and capacity factor estimates within 1km radius. Click "Search Area" to analyze.'}
+                {activeLayer === 'ndvi' && 'Vegetation health (NDVI) from satellite imagery. Analysis based on nearest available satellite imagery. Click "Search Area" to analyze.'}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -1169,7 +1215,12 @@ export function ClimateMap() {
                 size="sm" 
                 disabled={loading || loadingFires || loadingAir || loadingFlood || loadingTemperature}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Search Area
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -1180,41 +1231,58 @@ export function ClimateMap() {
             className="w-full h-[600px] rounded-lg overflow-hidden"
           />
           
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
+          {(loading || loadingFires || loadingAir || loadingFlood || loadingTemperature || loadingSolar || loadingNdvi) && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-[2px] rounded-lg z-50 transition-all duration-300">
+              <div className="bg-card border shadow-lg p-6 rounded-xl flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm font-medium text-foreground">Loading data...</p>
+              </div>
             </div>
           )}
+          
+
 
           {/* Legend - Fires */}
           {activeLayer === 'fires' && (
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              <h4 className="text-sm font-semibold mb-2">Legend</h4>
-              <div className="flex flex-wrap gap-4 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-white" />
-                  <span>High Confidence Fire</span>
+            <div className="mt-4 p-5 bg-card border rounded-xl shadow-sm">
+              <h4 className="text-base font-semibold mb-3 flex items-center gap-2">
+                <Flame className="h-4 w-4 text-orange-500" />
+                Thermal Anomaly Legend
+              </h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
+                  <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-white shadow-sm" />
+                  <span className="text-sm font-medium">High Confidence (&gt;80%)</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white" />
-                  <span>Medium Confidence</span>
+                <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
+                  <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white shadow-sm" />
+                  <span className="text-sm font-medium">Nominal Confidence</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white" />
-                  <span>Low Confidence</span>
+                <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
+                  <div className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white shadow-sm" />
+                  <span className="text-sm font-medium">Low Confidence</span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                <strong>Data source:</strong> NASA FIRMS (Fire Information for Resource Management System)
-                <br />
-                <strong>How it works:</strong> Pan/zoom the map to load fires for any region worldwide
-                <br />
-                Updated every 15 minutes • Marker size indicates fire intensity (FRP)
-                <br />
+              
+              <div className="space-y-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/50">
+                <p>
+                  <strong className="text-foreground">Data Source:</strong> NASA FIRMS (Fire Information for Resource Management System)
+                </p>
+                <p>
+                  <strong className="text-foreground">What is this?</strong> Detects "Thermal Anomalies" - this includes forest fires, but also agricultural burning (stubble) and industrial heat sources.
+                </p>
+                <p>
+                  <strong className="text-foreground">Visible Area:</strong> Stats above show total anomalies in your current map view.
+                </p>
+
                 {stats && stats.totalFires > 1000 && (
-                  <span className="text-yellow-600">⚡ Showing 1000 of {stats.totalFires} fires for performance</span>
+                  <p className="text-yellow-600 font-medium flex items-center gap-2 mt-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Showing 1000 of {stats.totalFires} anomalies for performance
+                  </p>
                 )}
-              </p>
+              </div>
             </div>
           )}
 
@@ -1239,7 +1307,7 @@ export function ClimateMap() {
               <p className="text-xs text-muted-foreground mt-2">
                 <strong>Data source:</strong> NREL PVWatts (National Renewable Energy Laboratory)
                 <br />
-                <strong>How it works:</strong> Shows solar potential for 4kW residential systems
+                <strong>How it works:</strong> Shows solar potential for 4kW residential systems within <strong>1km radius</strong> of selected point.
                 <br />
                 Based on satellite solar radiation data • Click markers for detailed estimates
                 {loadingSolar && (
@@ -1286,8 +1354,42 @@ export function ClimateMap() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 <strong>Data source:</strong> OpenWeather Air Pollution API
+              </p>
+            </div>
+          )}
+
+          {/* Legend - Flood Risk */}
+          {activeLayer === 'floods' && floodData && (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <h4 className="text-sm font-semibold mb-2">Flood Risk Analysis</h4>
+              <div className="flex flex-wrap gap-4 text-xs mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-white" />
+                  <span>Low Risk (&lt;25)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white" />
+                  <span>Moderate Risk (25-50)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white" />
+                  <span>High Risk (50-75)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-white" />
+                  <span>Extreme Risk (&gt;75)</span>
+                </div>
+              </div>
+              <div className="p-3 bg-background rounded border">
+                <p className="text-xs font-medium mb-1">Analysis Scope:</p>
+                <p className="text-xs text-muted-foreground">
+                  Risk assessment based on <strong>point-specific</strong> precipitation forecast (24h & 7-day) and local topography estimation.
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                <strong>Data source:</strong> OpenWeather Forecast API
                 <br />
-                Updated hourly • Pan map to check different locations
+                Includes drainage capacity estimation based on elevation
               </p>
             </div>
           )}

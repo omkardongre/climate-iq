@@ -29,29 +29,7 @@ export default function ClimateMapPage() {
       {/* Map Component */}
       <ClimateMap />
 
-      {/* Info Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-        <div className="p-4 border rounded-lg">
-          <h3 className="font-semibold mb-2">🛰️ Real-Time Data</h3>
-          <p className="text-sm text-muted-foreground">
-            Fire data updated every 15 minutes from NASA's MODIS and VIIRS satellites
-          </p>
-        </div>
-        
-        <div className="p-4 border rounded-lg">
-          <h3 className="font-semibold mb-2">🔥 Fire Detection</h3>
-          <p className="text-sm text-muted-foreground">
-            Active fires detected with confidence levels and fire radiative power measurements
-          </p>
-        </div>
-        
-        <div className="p-4 border rounded-lg">
-          <h3 className="font-semibold mb-2">📊 Risk Analysis</h3>
-          <p className="text-sm text-muted-foreground">
-            Automated risk assessment based on fire intensity, count, and confidence levels
-          </p>
-        </div>
-      </div>
+
     </div>
   );
 }
