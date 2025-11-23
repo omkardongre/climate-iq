@@ -37,7 +37,7 @@ export default function ClimateIQHome() {
       id: "climate-map",
       title: "Interactive Climate Map",
       description:
-        "Explore live fires, air quality, floods, temperature, solar potential, and vegetation health with real satellite data",
+        "Explore thermal anomalies, air quality, floods, temperature, solar potential, and vegetation health with real satellite data",
       icon: Map,
       gradient: "from-red-500 to-orange-600",
       href: "/climate-map",
