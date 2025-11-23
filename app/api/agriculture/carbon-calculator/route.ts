@@ -1,14 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Country-specific Electricity Grid Emission Factors (kg CO2e per kWh)
+// Source: IEA, IPCC Guidelines 2024
+const ELECTRICITY_FACTORS: Record<string, number> = {
+  // Asia Pacific
+  'India': 0.82,
+  'China': 0.58,
+  'Japan': 0.47,
+  'South Korea': 0.46,
+  'Australia': 0.65,
+  'Indonesia': 0.75,
+  'Thailand': 0.52,
+  'Vietnam': 0.62,
+  'Philippines': 0.58,
+  'Malaysia': 0.61,
+  'Singapore': 0.41,
+  'New Zealand': 0.12,
+  
+  // Europe
+  'Germany': 0.35,
+  'France': 0.06,
+  'United Kingdom': 0.23,
+  'Italy': 0.31,
+  'Spain': 0.21,
+  'Poland': 0.78,
+  'Netherlands': 0.39,
+  'Belgium': 0.16,
+  'Sweden': 0.01,
+  'Norway': 0.01,
+  'Denmark': 0.14,
+  'Finland': 0.07,
+  'Austria': 0.08,
+  'Switzerland': 0.02,
+  
+  // Americas
+  'United States of America': 0.42,
+  'United States': 0.42,
+  'USA': 0.42,
+  'Canada': 0.12,
+  'Brazil': 0.08,
+  'Mexico': 0.46,
+  'Argentina': 0.36,
+  'Chile': 0.41,
+  'Colombia': 0.16,
+  
+  // Middle East & Africa
+  'South Africa': 0.95,
+  'Egypt': 0.53,
+  'Saudi Arabia': 0.63,
+  'United Arab Emirates': 0.48,
+  'Israel': 0.62,
+  'Turkey': 0.49,
+  'Iran': 0.61,
+  'Kenya': 0.31,
+  'Nigeria': 0.52,
+  
+  // Default for unmapped countries
+  'default': 0.50
+};
+
 // IPCC Emission Factors (kg CO2e per unit)
 const EMISSION_FACTORS = {
   // Fuel (kg CO2e per liter)
   diesel: 2.68,
   petrol: 2.31,
   lpg: 1.51,
-  
-  // Electricity (kg CO2e per kWh) - India average
-  electricity: 0.82,
   
   // Fertilizers (kg CO2e per kg)
   urea: 1.57,
@@ -30,6 +86,9 @@ const EMISSION_FACTORS = {
 
 interface CarbonInput {
   farmSize: number; // acres
+  
+  // Location (optional)
+  country?: string;
   
   // Fuel usage (liters per month)
   diesel?: number;
@@ -64,13 +123,17 @@ export async function POST(request: NextRequest) {
   try {
     const data: CarbonInput = await request.json();
     
+    // Get country-specific electricity factor
+    const country = data.country || 'India';
+    const electricityFactor = ELECTRICITY_FACTORS[country] || ELECTRICITY_FACTORS['default'];
+    
     // Calculate emissions by category
     const fuelEmissions = 
       (data.diesel || 0) * EMISSION_FACTORS.diesel +
       (data.petrol || 0) * EMISSION_FACTORS.petrol +
       (data.lpg || 0) * EMISSION_FACTORS.lpg;
     
-    const electricityEmissions = (data.electricity || 0) * EMISSION_FACTORS.electricity;
+    const electricityEmissions = (data.electricity || 0) * electricityFactor;
     
     const fertilizerEmissions = 
       (data.urea || 0) * EMISSION_FACTORS.urea +
@@ -173,13 +236,12 @@ export async function POST(request: NextRequest) {
         irrigation: parseFloat(breakdown.irrigation.toFixed(1)),
       },
       comparison: {
-        benchmark,
+        benchmark: benchmark,
         difference: parseFloat(comparison.toFixed(1)),
-        rating,
-        ratingColor,
+        rating: rating,
+        ratingColor: ratingColor,
       },
-      quickWins,
-      emissionFactors: EMISSION_FACTORS, // For transparency
+      quickWins: quickWins,
     });
     
   } catch (error: any) {

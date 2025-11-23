@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Leaf, TrendingDown, TrendingUp, AlertCircle, Lightbulb, DollarSign, Clock } from 'lucide-react';
+import { Loader2, Leaf, TrendingDown, TrendingUp, AlertCircle, Lightbulb, DollarSign, Clock, Sprout, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 interface CarbonData {
   emissions: {
@@ -88,12 +88,25 @@ export function CarbonTracker() {
     setError('');
     
     try {
+      // Get user's country from localStorage (set by location selector)
+      let userCountry = 'India'; // Default
+      const savedLocation = localStorage.getItem('climateIQ-location');
+      if (savedLocation) {
+        try {
+          const locationData = JSON.parse(savedLocation);
+          userCountry = locationData.country || locationData.name || 'India';
+        } catch (e) {
+          console.log('Could not parse location data');
+        }
+      }
+
       const response = await fetch('/api/agriculture/carbon-calculator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           farmSize: parseFloat(farmSize),
           cropType,
+          country: userCountry,
           diesel: parseFloat(diesel) || 0,
           petrol: parseFloat(petrol) || 0,
           electricity: parseFloat(electricity) || 0,
@@ -198,16 +211,13 @@ export function CarbonTracker() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="basic" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              <TabsTrigger value="fuel">Fuel & Energy</TabsTrigger>
-              <TabsTrigger value="inputs">Farm Inputs</TabsTrigger>
-              <TabsTrigger value="livestock">Livestock</TabsTrigger>
-            </TabsList>
-
-            {/* Basic Info Tab */}
-            <TabsContent value="basic" className="space-y-4">
+          <div className="space-y-8">
+            {/* Basic Info Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-700">
+                <Leaf className="h-4 w-4" />
+                1. Basic Information
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Farm Size (acres) *</Label>
@@ -235,10 +245,13 @@ export function CarbonTracker() {
                   </Select>
                 </div>
               </div>
-            </TabsContent>
+            </div>
 
-            {/* Fuel & Energy Tab */}
-            <TabsContent value="fuel" className="space-y-4">
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-blue-700">
+                <Lightbulb className="h-4 w-4" />
+                2. Fuel & Energy
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Diesel (liters/month)</Label>
@@ -286,10 +299,13 @@ export function CarbonTracker() {
                   />
                 </div>
               </div>
-            </TabsContent>
+            </div>
 
-            {/* Farm Inputs Tab */}
-            <TabsContent value="inputs" className="space-y-4">
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-orange-700">
+                <Sprout className="h-4 w-4" />
+                3. Farm Inputs
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Urea (kg/season)</Label>
@@ -319,10 +335,13 @@ export function CarbonTracker() {
                   />
                 </div>
               </div>
-            </TabsContent>
+            </div>
 
-            {/* Livestock Tab */}
-            <TabsContent value="livestock" className="space-y-4">
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-amber-700">
+                <Users className="h-4 w-4" />
+                4. Livestock
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Cattle (number)</Label>
@@ -352,11 +371,11 @@ export function CarbonTracker() {
                   />
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+            <div className="mt-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
               <AlertCircle className="h-4 w-4" />
               <span className="text-sm">{error}</span>
             </div>
@@ -365,7 +384,7 @@ export function CarbonTracker() {
           <Button
             onClick={handleCalculate}
             disabled={loading}
-            className="w-full mt-6"
+            className="w-full mt-8"
             size="lg"
           >
             {loading ? (
@@ -437,6 +456,9 @@ export function CarbonTracker() {
                   {carbonData.comparison.rating}
                 </Badge>
               </div>
+              
+
+
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
