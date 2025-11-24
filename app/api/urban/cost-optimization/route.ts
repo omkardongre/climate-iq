@@ -1,14 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
 
 export async function POST(request: NextRequest) {
   try {
-    const { city, country, electricityUsage, waterUsage } =
-      await request.json();
+    const { city, country, electricityUsage, waterUsage } = await request.json();
 
-    const location = `${city || "your city"}, ${country || "India"}`;
+    const location = `${city || 'your city'}, ${country || 'India'}`;
 
     // Prompt for Gemini to search for cost optimization tips
     const prompt = `You are a home energy efficiency expert helping users reduce utility costs.
@@ -44,14 +43,11 @@ Provide 3-5 actionable, location-specific recommendations. If specific data for 
     let text = response.text();
 
     // Extract JSON from response
-    text = text
-      .replace(/```json\n?/g, "")
-      .replace(/```\n?/g, "")
-      .trim();
+    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-
+    
     if (!jsonMatch) {
-      throw new Error("No valid JSON in AI response");
+      throw new Error('No valid JSON in AI response');
     }
 
     const aiData = JSON.parse(jsonMatch[0]);
@@ -61,17 +57,40 @@ Provide 3-5 actionable, location-specific recommendations. If specific data for 
       recommendations: aiData.recommendations || [],
       location,
     });
-  } catch (error: any) {
-    console.error("Cost optimization error:", error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          "Unable to fetch cost optimization recommendations at this time. Please try again later or consult your local utility provider for energy-saving programs and tariff options.",
-        recommendations: [],
-      },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error('Cost optimization error:', error);
+    
+    // Fallback recommendations
+    return NextResponse.json({
+      success: true,
+      recommendations: [
+        {
+          title: "Switch to Time-of-Use Tariff",
+          savings: "₹300-500/month",
+          action: "Contact your utility provider to enroll in off-peak hour pricing. Run heavy appliances (washing machine, dishwasher) during off-peak hours (typically 10 PM - 6 AM).",
+          category: "tariff"
+        },
+        {
+          title: "Install LED Bulbs",
+          savings: "₹200/month",
+          action: "Replace all traditional incandescent and CFL bulbs with LED bulbs. LEDs use 75% less energy and last 25x longer.",
+          category: "appliance"
+        },
+        {
+          title: "Optimize AC Usage",
+          savings: "₹800/month",
+          action: "Set AC to 24-25°C instead of 18-20°C. Use ceiling fans with AC to feel cooler at higher temperatures. Clean AC filters monthly for better efficiency.",
+          category: "behavior"
+        },
+        {
+          title: "Fix Water Leaks",
+          savings: "₹150/month",
+          action: "Check all taps, pipes, and toilets for leaks. A dripping tap can waste 15 liters/day. Repair leaks immediately to save water and money.",
+          category: "rebate"
+        }
+      ],
+      fallback: true,
+    });
   }
 }
