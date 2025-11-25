@@ -1,62 +1,62 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 // Country-specific Electricity Grid Emission Factors (kg CO2e per kWh)
-// Source: IEA, IPCC Guidelines 2024
+// Source: IEA, IPCC Guidelines 2025
 const ELECTRICITY_FACTORS: Record<string, number> = {
   // Asia Pacific
-  'India': 0.82,
-  'China': 0.58,
-  'Japan': 0.47,
-  'South Korea': 0.46,
-  'Australia': 0.65,
-  'Indonesia': 0.75,
-  'Thailand': 0.52,
-  'Vietnam': 0.62,
-  'Philippines': 0.58,
-  'Malaysia': 0.61,
-  'Singapore': 0.41,
-  'New Zealand': 0.12,
-  
+  India: 0.82,
+  China: 0.58,
+  Japan: 0.47,
+  "South Korea": 0.46,
+  Australia: 0.65,
+  Indonesia: 0.75,
+  Thailand: 0.52,
+  Vietnam: 0.62,
+  Philippines: 0.58,
+  Malaysia: 0.61,
+  Singapore: 0.41,
+  "New Zealand": 0.12,
+
   // Europe
-  'Germany': 0.35,
-  'France': 0.06,
-  'United Kingdom': 0.23,
-  'Italy': 0.31,
-  'Spain': 0.21,
-  'Poland': 0.78,
-  'Netherlands': 0.39,
-  'Belgium': 0.16,
-  'Sweden': 0.01,
-  'Norway': 0.01,
-  'Denmark': 0.14,
-  'Finland': 0.07,
-  'Austria': 0.08,
-  'Switzerland': 0.02,
-  
+  Germany: 0.35,
+  France: 0.06,
+  "United Kingdom": 0.23,
+  Italy: 0.31,
+  Spain: 0.21,
+  Poland: 0.78,
+  Netherlands: 0.39,
+  Belgium: 0.16,
+  Sweden: 0.01,
+  Norway: 0.01,
+  Denmark: 0.14,
+  Finland: 0.07,
+  Austria: 0.08,
+  Switzerland: 0.02,
+
   // Americas
-  'United States of America': 0.42,
-  'United States': 0.42,
-  'USA': 0.42,
-  'Canada': 0.12,
-  'Brazil': 0.08,
-  'Mexico': 0.46,
-  'Argentina': 0.36,
-  'Chile': 0.41,
-  'Colombia': 0.16,
-  
+  "United States of America": 0.42,
+  "United States": 0.42,
+  USA: 0.42,
+  Canada: 0.12,
+  Brazil: 0.08,
+  Mexico: 0.46,
+  Argentina: 0.36,
+  Chile: 0.41,
+  Colombia: 0.16,
+
   // Middle East & Africa
-  'South Africa': 0.95,
-  'Egypt': 0.53,
-  'Saudi Arabia': 0.63,
-  'United Arab Emirates': 0.48,
-  'Israel': 0.62,
-  'Turkey': 0.49,
-  'Iran': 0.61,
-  'Kenya': 0.31,
-  'Nigeria': 0.52,
-  
+  "South Africa": 0.95,
+  Egypt: 0.53,
+  "Saudi Arabia": 0.63,
+  "United Arab Emirates": 0.48,
+  Israel: 0.62,
+  Turkey: 0.49,
+  Iran: 0.61,
+  Kenya: 0.31,
+  Nigeria: 0.52,
+
   // Default for unmapped countries
-  'default': 0.50
+  default: 0.5,
 };
 
 // IPCC Emission Factors (kg CO2e per unit)
@@ -65,20 +65,20 @@ const EMISSION_FACTORS = {
   diesel: 2.68,
   petrol: 2.31,
   lpg: 1.51,
-  
+
   // Fertilizers (kg CO2e per kg)
   urea: 1.57,
   dap: 1.33,
   potash: 0.65,
   organic: 0.15,
-  
+
   // Livestock (kg CO2e per animal per year)
   cattle: 2100,
   buffalo: 2500,
   goat: 28,
   sheep: 28,
   poultry: 1.5,
-  
+
   // Irrigation (kg CO2e per hour)
   electricPump: 2.5,
   dieselPump: 8.5,
@@ -86,35 +86,35 @@ const EMISSION_FACTORS = {
 
 interface CarbonInput {
   farmSize: number; // acres
-  
+
   // Location (optional)
   country?: string;
-  
+
   // Fuel usage (liters per month)
   diesel?: number;
   petrol?: number;
   lpg?: number;
-  
+
   // Electricity (kWh per month)
   electricity?: number;
-  
+
   // Fertilizers (kg per season)
   urea?: number;
   dap?: number;
   potash?: number;
   organic?: number;
-  
+
   // Livestock (number of animals)
   cattle?: number;
   buffalo?: number;
   goat?: number;
   sheep?: number;
   poultry?: number;
-  
+
   // Irrigation (hours per month)
   electricPump?: number;
   dieselPump?: number;
-  
+
   // Crop type (for comparison)
   cropType?: string;
 }
@@ -122,59 +122,65 @@ interface CarbonInput {
 export async function POST(request: NextRequest) {
   try {
     const data: CarbonInput = await request.json();
-    
+
     // Get country-specific electricity factor
-    const country = data.country || 'India';
-    const electricityFactor = ELECTRICITY_FACTORS[country] || ELECTRICITY_FACTORS['default'];
-    
+    const country = data.country || "India";
+    const electricityFactor =
+      ELECTRICITY_FACTORS[country] || ELECTRICITY_FACTORS["default"];
+
     // Calculate emissions by category
-    const fuelEmissions = 
+    const fuelEmissions =
       (data.diesel || 0) * EMISSION_FACTORS.diesel +
       (data.petrol || 0) * EMISSION_FACTORS.petrol +
       (data.lpg || 0) * EMISSION_FACTORS.lpg;
-    
+
     const electricityEmissions = (data.electricity || 0) * electricityFactor;
-    
-    const fertilizerEmissions = 
+
+    const fertilizerEmissions =
       (data.urea || 0) * EMISSION_FACTORS.urea +
       (data.dap || 0) * EMISSION_FACTORS.dap +
       (data.potash || 0) * EMISSION_FACTORS.potash +
       (data.organic || 0) * EMISSION_FACTORS.organic;
-    
-    const livestockEmissions = 
+
+    const livestockEmissions =
       ((data.cattle || 0) * EMISSION_FACTORS.cattle +
-      (data.buffalo || 0) * EMISSION_FACTORS.buffalo +
-      (data.goat || 0) * EMISSION_FACTORS.goat +
-      (data.sheep || 0) * EMISSION_FACTORS.sheep +
-      (data.poultry || 0) * EMISSION_FACTORS.poultry) / 12; // Monthly
-    
-    const irrigationEmissions = 
+        (data.buffalo || 0) * EMISSION_FACTORS.buffalo +
+        (data.goat || 0) * EMISSION_FACTORS.goat +
+        (data.sheep || 0) * EMISSION_FACTORS.sheep +
+        (data.poultry || 0) * EMISSION_FACTORS.poultry) /
+      12; // Monthly
+
+    const irrigationEmissions =
       (data.electricPump || 0) * EMISSION_FACTORS.electricPump +
       (data.dieselPump || 0) * EMISSION_FACTORS.dieselPump;
-    
+
     // Total monthly emissions (kg CO2e)
-    const totalMonthly = 
-      fuelEmissions + 
-      electricityEmissions + 
+    const totalMonthly =
+      fuelEmissions +
+      electricityEmissions +
       fertilizerEmissions / 4 + // Assuming 4 months per season
-      livestockEmissions + 
+      livestockEmissions +
       irrigationEmissions;
-    
+
     // Annual emissions
     const totalAnnual = totalMonthly * 12;
-    
+
     // Per acre emissions
     const perAcre = totalAnnual / data.farmSize;
-    
+
     // Breakdown by category (percentage)
     const breakdown = {
       fuel: totalMonthly > 0 ? (fuelEmissions / totalMonthly) * 100 : 0,
-      electricity: totalMonthly > 0 ? (electricityEmissions / totalMonthly) * 100 : 0,
-      fertilizer: totalMonthly > 0 ? ((fertilizerEmissions / 4) / totalMonthly) * 100 : 0,
-      livestock: totalMonthly > 0 ? (livestockEmissions / totalMonthly) * 100 : 0,
-      irrigation: totalMonthly > 0 ? (irrigationEmissions / totalMonthly) * 100 : 0,
+      electricity:
+        totalMonthly > 0 ? (electricityEmissions / totalMonthly) * 100 : 0,
+      fertilizer:
+        totalMonthly > 0 ? (fertilizerEmissions / 4 / totalMonthly) * 100 : 0,
+      livestock:
+        totalMonthly > 0 ? (livestockEmissions / totalMonthly) * 100 : 0,
+      irrigation:
+        totalMonthly > 0 ? (irrigationEmissions / totalMonthly) * 100 : 0,
     };
-    
+
     // Benchmarks (kg CO2e per acre per year) - Based on crop type
     const benchmarks: Record<string, number> = {
       rice: 2500,
@@ -185,43 +191,47 @@ export async function POST(request: NextRequest) {
       pulses: 1200,
       default: 2000,
     };
-    
-    const benchmark = benchmarks[data.cropType?.toLowerCase() || 'default'] || benchmarks.default;
+
+    const benchmark =
+      benchmarks[data.cropType?.toLowerCase() || "default"] ||
+      benchmarks.default;
     const comparison = ((perAcre - benchmark) / benchmark) * 100;
-    
+
     // Efficiency rating
-    let rating = 'Average';
-    let ratingColor = 'orange';
+    let rating = "Average";
+    let ratingColor = "orange";
     if (perAcre < benchmark * 0.8) {
-      rating = 'Excellent';
-      ratingColor = 'green';
+      rating = "Excellent";
+      ratingColor = "green";
     } else if (perAcre < benchmark) {
-      rating = 'Good';
-      ratingColor = 'lime';
+      rating = "Good";
+      ratingColor = "lime";
     } else if (perAcre > benchmark * 1.2) {
-      rating = 'Poor';
-      ratingColor = 'red';
+      rating = "Poor";
+      ratingColor = "red";
     }
-    
+
     // Quick wins (top 3 reduction opportunities)
     const categories = [
-      { name: 'Fuel', emissions: fuelEmissions, potential: 20 },
-      { name: 'Electricity', emissions: electricityEmissions, potential: 15 },
-      { name: 'Fertilizer', emissions: fertilizerEmissions / 4, potential: 25 },
-      { name: 'Livestock', emissions: livestockEmissions, potential: 10 },
-      { name: 'Irrigation', emissions: irrigationEmissions, potential: 30 },
+      { name: "Fuel", emissions: fuelEmissions, potential: 20 },
+      { name: "Electricity", emissions: electricityEmissions, potential: 15 },
+      { name: "Fertilizer", emissions: fertilizerEmissions / 4, potential: 25 },
+      { name: "Livestock", emissions: livestockEmissions, potential: 10 },
+      { name: "Irrigation", emissions: irrigationEmissions, potential: 30 },
     ];
-    
+
     const quickWins = categories
-      .sort((a, b) => (b.emissions * b.potential) - (a.emissions * a.potential))
+      .sort((a, b) => b.emissions * b.potential - a.emissions * a.potential)
       .slice(0, 3)
-      .map(cat => ({
+      .map((cat) => ({
         category: cat.name,
         currentEmissions: parseFloat(cat.emissions.toFixed(1)),
-        potentialReduction: parseFloat((cat.emissions * cat.potential / 100).toFixed(1)),
+        potentialReduction: parseFloat(
+          ((cat.emissions * cat.potential) / 100).toFixed(1)
+        ),
         percentage: cat.potential,
       }));
-    
+
     return NextResponse.json({
       emissions: {
         monthly: parseFloat(totalMonthly.toFixed(1)),
@@ -243,11 +253,10 @@ export async function POST(request: NextRequest) {
       },
       quickWins: quickWins,
     });
-    
   } catch (error: any) {
-    console.error('Carbon calculator error:', error);
+    console.error("Carbon calculator error:", error);
     return NextResponse.json(
-      { error: error.message || 'Failed to calculate carbon footprint' },
+      { error: error.message || "Failed to calculate carbon footprint" },
       { status: 500 }
     );
   }
