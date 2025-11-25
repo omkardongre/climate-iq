@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sprout, Droplets, Leaf, MessageSquare, Calendar, MapPin, ExternalLink, Users, Newspaper, CalendarDays, Loader2, Sun } from 'lucide-react';
-import { CropPlanner } from '@/components/agriculture/CropPlanner';
+import { Sprout, Droplets, Leaf, MessageSquare, Calendar, MapPin, ExternalLink, Users, Newspaper, CalendarDays, Loader2, Sun, Brain } from 'lucide-react';
 import { CarbonTracker } from '@/components/agriculture/CarbonTracker';
 import { SolarIrrigationCalculator } from '@/components/agriculture/SolarIrrigationCalculator';
+import { MultiAgentCropAdvisor } from '@/components/agriculture/MultiAgentCropAdvisor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { storyblokService } from '@/lib/storyblok-service';
@@ -15,7 +15,7 @@ import { useCountryTheme } from '@/hooks/useCountryTheme';
 import Image from 'next/image';
 
 export default function AgriculturePage() {
-  const [activeTab, setActiveTab] = useState('crop-planner');
+  const [activeTab, setActiveTab] = useState('crop-advisor');
   const [communityUpdates, setCommunityUpdates] = useState<CommunityUpdate[]>([]);
   const [environmentalEvents, setEnvironmentalEvents] = useState<EventItem[]>([]);
   const [latestNews, setLatestNews] = useState<NewsItem[]>([]);
@@ -70,7 +70,12 @@ export default function AgriculturePage() {
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-1 lg:grid-cols-4 h-auto">
+        <TabsList className="grid w-full grid-cols-1 lg:grid-cols-5 h-auto">
+          <TabsTrigger value="multi-agent" className="flex items-center gap-2 py-3">
+            <Brain className="h-4 w-4" />
+            <span className="hidden sm:inline">Multi-Agent AI</span>
+            <span className="sm:hidden">Multi-AI</span>
+          </TabsTrigger>
           <TabsTrigger value="crop-planner" className="flex items-center gap-2 py-3">
             <Sprout className="h-4 w-4" />
             <span className="hidden sm:inline">AI Crop Planner</span>
@@ -93,6 +98,11 @@ export default function AgriculturePage() {
           </TabsTrigger>
         </TabsList>
 
+        {/* AI Crop Advisor Tab */}
+        <TabsContent value="crop-advisor" className="space-y-6">
+          <MultiAgentCropAdvisor />
+        </TabsContent>
+
         {/* AI Crop Planner Tab */}
         <TabsContent value="crop-planner" className="space-y-6">
           <CropPlanner />
@@ -110,6 +120,11 @@ export default function AgriculturePage() {
 
         {/* Community Tab */}
         <TabsContent value="community" className="space-y-6">
+          <h2 className="text-3xl font-bold mb-4">Community Hub</h2>
+          <p className="text-muted-foreground mb-6">
+            Stay updated with the latest community discussions, environmental events, and news.
+          </p>
+
           <Tabs defaultValue="updates" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="updates" className="flex items-center gap-2">
@@ -118,7 +133,7 @@ export default function AgriculturePage() {
               </TabsTrigger>
               <TabsTrigger value="events" className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4" />
-                Events
+                Environmental Events
               </TabsTrigger>
               <TabsTrigger value="news" className="flex items-center gap-2">
                 <Newspaper className="h-4 w-4" />
