@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
 
@@ -7,7 +7,9 @@ export async function POST(request: NextRequest) {
   try {
     const { city, state, country } = await request.json();
 
-    const location = `${city || 'your city'}${state ? ', ' + state : ''}, ${country || 'India'}`;
+    const location = `${city || "your city"}${state ? ", " + state : ""}, ${
+      country || "India"
+    }`;
 
     // Prompt for Gemini to search for installers and subsidies
     const prompt = `You are a solar energy expert helping users find solar panel installation services and government subsidies.
@@ -65,11 +67,14 @@ Requirements:
     let text = response.text();
 
     // Extract JSON from response
-    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    text = text
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    
+
     if (!jsonMatch) {
-      throw new Error('No valid JSON in AI response');
+      throw new Error("No valid JSON in AI response");
     }
 
     const aiData = JSON.parse(jsonMatch[0]);
@@ -81,35 +86,18 @@ Requirements:
       financing: aiData.financing || null,
       location,
     });
-
   } catch (error: any) {
-    console.error('Solar installers error:', error);
-    
-    // Fallback data
-    return NextResponse.json({
-      success: true,
-      installers: [
-        {
-          name: "Local Solar Providers",
-          rating: "Contact for quotes",
-          services: "Installation, maintenance, monitoring",
-          contact: "Search online for solar installers in your area"
-        }
-      ],
-      subsidies: [
-        {
-          scheme_name: "Government Solar Subsidy",
-          provider: "Ministry of New and Renewable Energy",
-          benefit: "Up to 40% subsidy for residential rooftop solar",
-          eligibility: "Homeowners, check local eligibility"
-        }
-      ],
-      financing: {
-        available: true,
-        options: "Banks and NBFCs offer solar loans with competitive interest rates",
-        typical_roi: "5-7 years"
+    console.error("Solar installers error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          'Unable to fetch installer and subsidy information at this time. Please try again later or search online for "solar installers near me" and check your local government energy department website for current subsidy programs.',
+        installers: [],
+        subsidies: [],
       },
-      fallback: true,
-    });
+      { status: 500 }
+    );
   }
 }

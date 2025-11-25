@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
 
@@ -7,8 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     const { city, country } = await request.json();
 
-    const cityName = city || 'your city';
-    const countryName = country || 'India';
+    const cityName = city || "your city";
+    const countryName = country || "India";
 
     // Multi-agentic prompt: First city-specific, then country-level
     const prompt = `You are an eco-advisor helping residents find local green initiatives and sustainable programs.
@@ -57,11 +57,14 @@ Requirements:
     let text = response.text();
 
     // Extract JSON from response
-    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    text = text
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    
+
     if (!jsonMatch) {
-      throw new Error('No valid JSON in AI response');
+      throw new Error("No valid JSON in AI response");
     }
 
     const aiData = JSON.parse(jsonMatch[0]);
@@ -71,52 +74,28 @@ Requirements:
       initiatives: aiData.initiatives || [],
       location: `${cityName}, ${countryName}`,
     });
-
   } catch (error: any) {
-    console.error('Local initiatives error:', error);
-    
-    // Fallback initiatives - generic but useful
-    const { city, country } = await request.json();
-    const countryName = country || 'India';
-    
-    return NextResponse.json({
-      success: true,
-      initiatives: [
-        {
-          title: "Use Public Transportation",
-          category: "transport",
-          description: `Reduce your carbon footprint by using buses, metros, or trains in ${city || 'your city'} for daily commute.`,
-          actionable: "Check your local transport app for eco-friendly routes",
-          link: "Contact local municipality",
-          scope: "city"
-        },
-        {
-          title: "Start Composting at Home",
-          category: "waste",
-          description: "Turn organic waste into nutrient-rich compost for plants.",
-          actionable: "Set up a small compost bin in your kitchen or balcony",
-          link: "Contact local municipality",
-          scope: "city"
-        },
-        {
-          title: "Join Community Clean-up Drives",
-          category: "community",
-          description: `Participate in local environmental clean-up events in ${city || 'your area'}.`,
-          actionable: "Search for 'clean-up events near me' or check community boards",
-          link: "Contact local municipality",
-          scope: "city"
-        },
-        {
-          title: "Switch to LED Bulbs",
-          category: "energy",
-          description: "Replace traditional bulbs with energy-efficient LEDs.",
-          actionable: "Visit local hardware store and replace old bulbs gradually",
-          link: "Contact local municipality",
-          scope: "country"
-        }
-      ],
-      fallback: true,
-      location: `${city || 'your city'}, ${countryName}`,
-    });
+    console.error("Local initiatives error:", error);
+
+    let city, country;
+    try {
+      const body = await request.json();
+      city = body.city;
+      country = body.country;
+    } catch (e) {
+      city = "your city";
+      country = "your country";
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Unable to fetch local green initiatives at this time. Please try again later or check your city's official website and local environmental organizations for sustainable programs.",
+        initiatives: [],
+        location: `${city || "your city"}, ${country || "your country"}`,
+      },
+      { status: 500 }
+    );
   }
 }
