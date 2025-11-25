@@ -70,16 +70,11 @@ export default function AgriculturePage() {
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-1 lg:grid-cols-5 h-auto">
-          <TabsTrigger value="multi-agent" className="flex items-center gap-2 py-3">
+        <TabsList className="grid w-full grid-cols-1 lg:grid-cols-4 h-auto">
+          <TabsTrigger value="crop-advisor" className="flex items-center gap-2 py-3">
             <Brain className="h-4 w-4" />
-            <span className="hidden sm:inline">Multi-Agent AI</span>
-            <span className="sm:hidden">Multi-AI</span>
-          </TabsTrigger>
-          <TabsTrigger value="crop-planner" className="flex items-center gap-2 py-3">
-            <Sprout className="h-4 w-4" />
-            <span className="hidden sm:inline">AI Crop Planner</span>
-            <span className="sm:hidden">Crops</span>
+            <span className="hidden sm:inline">AI Crop Advisor</span>
+            <span className="sm:hidden">Crop AI</span>
           </TabsTrigger>
           <TabsTrigger value="carbon" className="flex items-center gap-2 py-3">
             <Leaf className="h-4 w-4" />
@@ -101,11 +96,6 @@ export default function AgriculturePage() {
         {/* AI Crop Advisor Tab */}
         <TabsContent value="crop-advisor" className="space-y-6">
           <MultiAgentCropAdvisor />
-        </TabsContent>
-
-        {/* AI Crop Planner Tab */}
-        <TabsContent value="crop-planner" className="space-y-6">
-          <CropPlanner />
         </TabsContent>
 
         {/* Carbon Tracker Tab */}

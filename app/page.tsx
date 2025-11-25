@@ -24,6 +24,7 @@ import {
 import Link from "next/link";
 import { FloatingButtons } from "@/components/ui/floating-buttons";
 import { LocationSelector } from "@/components/ui/location-selector";
+import { AlertBell } from "@/components/AlertBell";
 import { useCountryTheme } from "@/hooks/useCountryTheme";
 
 export default function ClimateIQHome() {
@@ -213,16 +214,8 @@ export default function ClimateIQHome() {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              {/* <Link href="/community">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl border-2"
-                >
-                  Community Hub
-                </Button>
-              </Link> */}
               <LocationSelector size="sm" />
+              <AlertBell />
               {user ? (
                 <div className="flex items-center space-x-3">
                   <div className="px-3 py-1 bg-gradient-to-r from-emerald-100 to-teal-100 dark:from-emerald-900 dark:to-teal-900 rounded-full">

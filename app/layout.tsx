@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { AuthProvider } from "@/components/auth-provider";
 import { KeyboardNavigationProvider } from "@/components/ui/keyboard-navigation-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
 import StoryblokProvider from "@/components/StoryblokProvider";
 import "./globals.css";
 
@@ -36,6 +37,7 @@ export default function RootLayout({
               </AuthProvider>
             </KeyboardNavigationProvider>
           </ThemeProvider>
+          <Toaster />
           <Analytics />
         </body>
       </html>
