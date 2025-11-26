@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
 
@@ -12,8 +12,12 @@ interface WeatherData {
 }
 
 interface Alert {
-  type: 'thermal_anomaly' | 'air_quality' | 'flood_risk' | 'temperature_extreme';
-  severity: 'info' | 'advisory' | 'warning' | 'critical' | 'emergency';
+  type:
+    | "thermal_anomaly"
+    | "air_quality"
+    | "flood_risk"
+    | "temperature_extreme";
+  severity: "info" | "advisory" | "warning" | "critical" | "emergency";
   title: string;
   message: string;
   actionItems: string[];
@@ -26,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     if (!latitude || !longitude) {
       return NextResponse.json(
-        { error: 'Latitude and longitude required' },
+        { error: "Latitude and longitude required" },
         { status: 400 }
       );
     }
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest) {
     );
 
     if (!weatherResponse.ok) {
-      throw new Error('Failed to fetch weather data');
+      throw new Error("Failed to fetch weather data");
     }
 
     const weatherData = await weatherResponse.json();
@@ -57,9 +61,9 @@ export async function POST(req: NextRequest) {
     const conditions: WeatherData = {
       temperature: weatherData.main.temp,
       aqi: aqi,
-      rainfall: weatherData.rain?.['1h'] || weatherData.rain?.['3h'] || 0,
+      rainfall: weatherData.rain?.["1h"] || weatherData.rain?.["3h"] || 0,
       humidity: weatherData.main.humidity,
-      windSpeed: weatherData.wind.speed
+      windSpeed: weatherData.wind.speed,
     };
 
     // Use Gemini AI to analyze conditions
@@ -70,13 +74,12 @@ export async function POST(req: NextRequest) {
       location: weatherData.name,
       conditions,
       alerts,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
-    console.error('Error checking conditions:', error);
+    console.error("Error checking conditions:", error);
     return NextResponse.json(
-      { error: 'Failed to check alert conditions' },
+      { error: "Failed to check alert conditions" },
       { status: 500 }
     );
   }
@@ -87,11 +90,11 @@ async function analyzeConditionsWithAI(
   locationName: string
 ): Promise<Alert[]> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: "gemini-2.0-flash-exp",
     generationConfig: {
       temperature: 0.3,
-      responseMimeType: 'application/json'
-    }
+      responseMimeType: "application/json",
+    },
   });
 
   const prompt = `You are a climate alert monitoring agent. Analyze these weather conditions and determine if any alerts should be generated.
@@ -100,7 +103,9 @@ async function analyzeConditionsWithAI(
 
 **Current Conditions:**
 - Temperature: ${conditions.temperature}°C
-- Air Quality Index: ${conditions.aqi} (1=Good, 2=Fair, 3=Moderate, 4=Poor, 5=Very Poor)
+- Air Quality Index: ${
+    conditions.aqi
+  } (1=Good, 2=Fair, 3=Moderate, 4=Poor, 5=Very Poor)
 - Rainfall: ${conditions.rainfall}mm/hour
 - Humidity: ${conditions.humidity}%
 - Wind Speed: ${conditions.windSpeed}m/s
@@ -162,25 +167,31 @@ Example response:
   try {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
-    
+
     // Clean and parse response
     const cleanedText = responseText
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
       .trim();
 
     const alerts: Alert[] = JSON.parse(cleanedText);
-    
+
     // Validate and return
     if (!Array.isArray(alerts)) {
-      console.error('AI response not an array:', cleanedText);
+      console.error("AI response not an array:", cleanedText);
       return [];
     }
 
-    return alerts;
+    // Fix expiresAt dates - ensure they're 6 hours from now
+    const now = new Date();
+    const expiryTime = new Date(now.getTime() + 6 * 60 * 60 * 1000);
 
+    return alerts.map((alert) => ({
+      ...alert,
+      expiresAt: expiryTime as any, // Will be serialized to ISO string in JSON response
+    }));
   } catch (error) {
-    console.error('Error analyzing conditions with AI:', error);
+    console.error("Error analyzing conditions with AI:", error);
     return [];
   }
 }

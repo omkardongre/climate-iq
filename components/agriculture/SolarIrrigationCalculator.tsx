@@ -225,7 +225,7 @@ export function SolarIrrigationCalculator() {
                   ) : (
                     <>
                       <MapPin className="mr-2 h-5 w-5" />
-                      📍 Use My Current Location
+                       Use My Current Location
                     </>
                   )}
                 </Button>

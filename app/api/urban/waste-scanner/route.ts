@@ -1,12 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || "");
 
 interface WasteAnalysis {
   wasteType: string;
@@ -23,22 +18,24 @@ export async function POST(request: NextRequest) {
 
     if (!imageData) {
       return NextResponse.json(
-        { error: 'Image data required' },
+        { error: "Image data required" },
         { status: 400 }
       );
     }
 
     // Extract base64 data (same as analyze-image route)
-    const base64Image = imageData.includes(',') ? imageData.split(',')[1] : imageData;
-    const mimeType = 'image/jpeg';
+    const base64Image = imageData.includes(",")
+      ? imageData.split(",")[1]
+      : imageData;
+    const mimeType = "image/jpeg";
 
     // Analyze with Gemini Vision (using REST API like analyze-image)
     let analysis: WasteAnalysis;
-    
+
     try {
       const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
       if (!apiKey) {
-        throw new Error('Gemini API key not configured');
+        throw new Error("Gemini API key not configured");
       }
 
       const prompt = `You are a waste classification AI. Analyze this image and identify the waste item.
@@ -73,36 +70,42 @@ Example for plastic bottle:
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: prompt },
-                {
-                  inlineData: {
-                    mimeType,
-                    data: base64Image
-                  }
-                }
-              ]
-            }]
-          })
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  {
+                    inlineData: {
+                      mimeType,
+                      data: base64Image,
+                    },
+                  },
+                ],
+              },
+            ],
+          }),
         }
       );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Gemini API Error:', errorText);
+        console.error("Gemini API Error:", errorText);
         throw new Error(`Gemini API error: ${response.status}`);
       }
 
       const data = await response.json();
-      
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        throw new Error('Invalid response from Gemini API');
+
+      if (
+        !data.candidates ||
+        !data.candidates[0] ||
+        !data.candidates[0].content
+      ) {
+        throw new Error("Invalid response from Gemini API");
       }
 
       const text = data.candidates[0].content.parts[0].text;
@@ -110,17 +113,18 @@ Example for plastic bottle:
       // Extract JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('AI did not return valid JSON');
+        throw new Error("AI did not return valid JSON");
       }
 
       analysis = JSON.parse(jsonMatch[0]);
-
     } catch (aiError: any) {
-      console.error('Gemini Vision error:', aiError.message);
+      console.error("Gemini Vision error:", aiError.message);
       return NextResponse.json(
         {
-          error: 'AI service unavailable',
-          message: aiError.message || 'Failed to analyze waste image. Please try again.',
+          error: "AI service unavailable",
+          message:
+            aiError.message ||
+            "Failed to analyze waste image. Please try again.",
         },
         { status: 503 }
       );
@@ -130,108 +134,22 @@ Example for plastic bottle:
     if (!analysis.wasteType || !analysis.disposalInstructions) {
       return NextResponse.json(
         {
-          error: 'Invalid analysis',
-          message: 'AI could not properly analyze the image. Please try a clearer photo.',
+          error: "Invalid analysis",
+          message:
+            "AI could not properly analyze the image. Please try a clearer photo.",
         },
         { status: 500 }
       );
     }
 
-    // Save to Supabase (if userId provided and valid UUID)
-    let scanId = null;
-    if (userId && userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      try {
-        // Convert base64 to buffer for storage
-        const buffer = Buffer.from(base64Image, 'base64');
-        
-        // Upload image to Supabase Storage
-        const fileName = `${userId}/${Date.now()}-waste-scan.jpg`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('waste-scans')
-          .upload(fileName, buffer, {
-            contentType: mimeType,
-            upsert: false,
-          });
-
-        if (uploadError) {
-          console.error('Storage upload error:', uploadError);
-        }
-
-        const imageUrl = uploadData
-          ? supabase.storage.from('waste-scans').getPublicUrl(fileName).data.publicUrl
-          : null;
-
-        // Save scan to database
-        const { data: scanData, error: dbError } = await supabase
-          .from('waste_scans')
-          .insert({
-            user_id: userId,
-            image_url: imageUrl,
-            waste_type: analysis.wasteType,
-            waste_subtype: analysis.wasteSubtype,
-            recyclable: analysis.recyclable,
-            disposal_instructions: analysis.disposalInstructions,
-            confidence_score: analysis.confidence,
-            carbon_impact: analysis.carbonImpact,
-            ai_analysis: analysis,
-          })
-          .select()
-          .single();
-
-        if (!dbError && scanData) {
-          scanId = scanData.id;
-        }
-      } catch (dbError: any) {
-        console.error('Database error:', dbError);
-        // Continue even if DB save fails
-      }
-    }
-
+    // Return analysis directly - no storage needed
     return NextResponse.json({
       analysis,
-      scanId,
     });
-
   } catch (error: any) {
-    console.error('Waste scanner error:', error);
+    console.error("Waste scanner error:", error);
     return NextResponse.json(
-      { error: error.message || 'Failed to analyze waste' },
-      { status: 500 }
-    );
-  }
-}
-
-// GET endpoint to fetch scan history
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const limit = parseInt(searchParams.get('limit') || '10');
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID required' },
-        { status: 400 }
-      );
-    }
-
-    const { data, error } = await supabase
-      .from('waste_scans')
-      .select('*')
-      .eq('user_id', userId)
-      .order('scan_date', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      throw error;
-    }
-
-    return NextResponse.json({ scans: data || [] });
-
-  } catch (error: any) {
-    console.error('Fetch scans error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch scan history' },
+      { error: error.message || "Failed to analyze waste" },
       { status: 500 }
     );
   }
