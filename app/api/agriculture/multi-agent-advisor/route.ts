@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     // Fetch ML model prediction
     let mlPrediction = null;
     try {
-      const predictionResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/agriculture/crop-prediction`, {
+      const predictionResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/agriculture/crop-prediction`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

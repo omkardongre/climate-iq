@@ -295,8 +295,6 @@ export default function ClimateIQHome() {
                       {!user && (
                         <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-700 w-full">
                           <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span>🔒</span>
-                            <span>Sign in to save your data</span>
                           </div>
                         </div>
                       )}
