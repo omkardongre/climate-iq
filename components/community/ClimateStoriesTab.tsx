@@ -11,11 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 import { VideoUploader } from "@/components/video/VideoUploader";
 import { HarvestLiveBroadcaster } from "@/components/video/HarvestLiveBroadcaster";
 import { MuxVideoPlayer, MuxLivePlayer } from "@/components/video/MuxVideoPlayer";
 import { getThumbnailUrl, getAnimatedGifUrl } from "@/lib/mux";
-import { Video, MapPin, Eye, Heart, Clock, Play, Plus, X, AlertCircle, Trash2, Sparkles, Loader2 } from "lucide-react";
+import { Video, MapPin, Eye, Heart, Clock, Play, Plus, X, AlertCircle, Trash2, Sparkles, Loader2, Languages, Globe } from "lucide-react";
+import { SUPPORTED_LANGUAGES, type TranslationResult } from "@/lib/ai-config";
 import Image from "next/image";
 
 // Types for climate videos
@@ -37,7 +39,7 @@ interface ClimateVideo {
   view_count: number;
   like_count: number;
   created_at: string;
-  created_at: string;
+  chapters?: { startTime: number; endTime?: number; value: string }[] | null;
 }
 
 // Types for live streams
@@ -68,6 +70,7 @@ const CLIMATE_TOPICS = [
  * Uses Mux for video hosting with direct upload, thumbnails, and playback
  */
 export function ClimateStoriesTab() {
+  const { toast } = useToast();
   const supabase = createClient();
   const [videos, setVideos] = useState<ClimateVideo[]>([]);
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
@@ -91,6 +94,10 @@ export function ClimateStoriesTab() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingChapters, setIsGeneratingChapters] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [isTranslateDialogOpen, setIsTranslateDialogOpen] = useState(false);
+  const [targetLanguage, setTargetLanguage] = useState<string>("es");
+  const [playerVersion, setPlayerVersion] = useState(0);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
@@ -119,7 +126,11 @@ export function ClimateStoriesTab() {
       setVideos(prev => prev.filter(v => v.id !== video.id));
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete video. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: "Failed to delete video. Please try again.",
+      });
     }
   };
 
@@ -249,7 +260,7 @@ export function ClimateStoriesTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assetId: selectedVideo.mux_asset_id,
-          provider: "gemini", // Use Gemini for hackathon
+          provider: "google", // @mux/ai uses 'google' for Gemini
         }),
       });
 
@@ -259,30 +270,73 @@ export function ClimateStoriesTab() {
         throw new Error(data.error || "Failed to generate chapters");
       }
 
-      // Format chapters as text to append to description
-      const chaptersText = "\n\n**🤖 AI Chapters:**\n" + 
-        data.chapters.map((c: any) => `${c.startTime} - ${c.title}`).join("\n");
-
-      const newDescription = (selectedVideo.description || "") + chaptersText;
-
-      // Update Supabase
-      const { error: updateError } = await supabase
-        .from("climate_videos")
-        .update({ description: newDescription })
-        .eq("id", selectedVideo.id);
-
-      if (updateError) throw updateError;
-
-      // Update local state
-      const updatedVideo = { ...selectedVideo, description: newDescription };
-      setSelectedVideo(updatedVideo);
-      setVideos(prev => prev.map(v => v.id === updatedVideo.id ? updatedVideo : v));
-
+      // Refresh video data
+      fetchVideos();
+      
+      if (selectedVideo) {
+        setSelectedVideo({
+          ...selectedVideo,
+          chapters: data.chapters
+        });
+      }
+      
     } catch (err) {
       console.error("Error generating chapters:", err);
-      alert("Failed to generate chapters. Transcript might not be ready yet.");
+      // Optional: Show toast error
     } finally {
       setIsGeneratingChapters(false);
+    }
+  };
+
+  const handleTranslateCaptions = async () => {
+    if (!selectedVideo?.mux_asset_id) return;
+    
+    setIsTranslating(true);
+    try {
+      const response = await fetch("/api/mux/ai/translate-captions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assetId: selectedVideo.mux_asset_id,
+          targetLanguage: targetLanguage
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.hint || errorData.error || "Translation failed");
+      }
+      
+      const result: TranslationResult = await response.json();
+      
+      const langName = SUPPORTED_LANGUAGES.find(l => l.code === result.language)?.name || result.language;
+      
+      // Close dialog, wait for propagation, then reload
+      setIsTranslateDialogOpen(false);
+      
+      toast({
+        title: `Translation to ${langName} Complete`,
+        description: "Refreshing player in 5 seconds to ensure captions are ready...",
+      });
+
+      // Delay reload to allow CDN propagation
+      setTimeout(() => {
+        setPlayerVersion(v => v + 1);
+        toast({
+           title: "Player Refreshed",
+           description: "Check the 'CC' menu for the new language.",
+        });
+      }, 5000);
+
+    } catch (err) {
+      console.error("Error translating captions:", err);
+      toast({
+        variant: "destructive",
+        title: "Translation Failed",
+        description: err instanceof Error ? err.message : "Failed to translate captions",
+      });
+    } finally {
+      setIsTranslating(false);
     }
   };
 
@@ -684,11 +738,17 @@ export function ClimateStoriesTab() {
                         </Button>
                     )}
                 </div>
-                {video.description && (
-                  <CardDescription className="line-clamp-2">
-                    {video.description}
-                  </CardDescription>
-                )}
+                {video.description && (() => {
+                  // Strip chapters from card display - only show in modal
+                  const cleanDesc = video.description
+                    .split(/📑 \*\*Chapters:\*\*|\*\*🤖 AI Chapters:\*\*/)[0]
+                    .trim();
+                  return cleanDesc && (
+                    <CardDescription className="line-clamp-2">
+                      {cleanDesc}
+                    </CardDescription>
+                  );
+                })()}
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -727,9 +787,13 @@ export function ClimateStoriesTab() {
       {/* Video Playback Modal */}
       <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
         <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden">
+          <DialogTitle className="sr-only">
+            {selectedVideo?.title || "Video Player"}
+          </DialogTitle>
           {selectedVideo?.playback_id && (
             <>
               <MuxVideoPlayer
+                key={`${selectedVideo.playback_id}-${playerVersion}`}
                 playbackId={selectedVideo.playback_id}
                 title={selectedVideo.title}
                 aspectRatio={selectedVideo.aspect_ratio || "16/9"}
@@ -738,8 +802,8 @@ export function ClimateStoriesTab() {
                   video_title: selectedVideo.title,
                   video_id: selectedVideo.id,
                   climate_topic: selectedVideo.climate_topic || undefined,
-                  feature_used: "climate_stories",
                 }}
+                chapters={selectedVideo.chapters || undefined}
               />
               <div className="p-4">
                 <h3 className="text-lg font-semibold mb-2">{selectedVideo.title}</h3>
@@ -768,7 +832,7 @@ export function ClimateStoriesTab() {
                     variant="outline" 
                     className="w-full sm:w-auto text-indigo-600 border-indigo-200 hover:bg-indigo-50 dark:hover:bg-indigo-950"
                     onClick={handleGenerateChapters}
-                    disabled={isGeneratingChapters || (selectedVideo.description || "").includes("**🤖 AI Chapters:**")}
+                    disabled={isGeneratingChapters}
                   >
                     {isGeneratingChapters ? (
                       <>
@@ -778,13 +842,74 @@ export function ClimateStoriesTab() {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        { (selectedVideo.description || "").includes("**🤖 AI Chapters:**") ? "AI Chapters Generated" : "Generate AI Chapters" }
+                        { (selectedVideo.chapters && selectedVideo.chapters.length > 0)
+                          ? "Regenerate Chapters" 
+                          : "Generate AI Chapters" }
                       </>
                     )}
                   </Button>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Powered by Google Gemini 1.5 Pro
-                  </p>
+
+                  <Button 
+                    variant="outline" 
+                    className="w-full sm:w-auto text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950"
+                    onClick={() => setIsTranslateDialogOpen(true)}
+                  >
+                    <Languages className="w-4 h-4 mr-2" />
+                    Translate Captions
+                  </Button>
+
+                  <Dialog open={isTranslateDialogOpen} onOpenChange={setIsTranslateDialogOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Translate Captions</DialogTitle>
+                        <DialogDescription>
+                          Use AI to translate the video captions into another language.
+                          This will add a new subtitle track.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="language" className="text-right">
+                            Language
+                          </Label>
+                          <Select 
+                            value={targetLanguage} 
+                            onValueChange={setTargetLanguage}
+                          >
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SUPPORTED_LANGUAGES.map((lang) => (
+                                <SelectItem key={lang.code} value={lang.code}>
+                                  {lang.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsTranslateDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleTranslateCaptions} disabled={isTranslating}>
+                          {isTranslating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Translating (~40s)...
+                            </>
+                          ) : (
+                            <>
+                              <Globe className="w-4 h-4 mr-2" />
+                              Translate
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
                 </div>
               </div>
             </>
