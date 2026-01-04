@@ -9,9 +9,14 @@
     "start": "next start"
   },
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.28.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
     "@mapbox/mapbox-gl-geocoder": "^5.1.2",
+    "@mux/ai": "^0.4.0",
+    "@mux/mux-node": "^12.8.1",
+    "@mux/mux-player-react": "^3.10.2",
+    "@mux/mux-uploader-react": "^1.4.1",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -52,6 +57,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
+    "elevenlabs": "^1.59.0",
     "embla-carousel-react": "8.5.1",
     "framer-motion": "^12.23.24",
     "geist": "latest",
