@@ -27,9 +27,10 @@ AI-powered platform democratizing satellite climate data through multi-agent AI 
 
 ### 👥 Community Hub
 
-- Storyblok CMS learning modules (Climate Basics, Sustainability)
-- AI-generated quizzes with modal UI
-- Real-time progress tracking
+- **Climate Stories**: Video uploads with auto-generated captions, AI chapters, and multi-language translation
+- **Harvest Live**: Low-latency live streaming for real-time expert consultations
+- **AI Audio Dubbing**: Multi-track audio in Hindi, Spanish, French for global accessibility
+- Learning modules (CMS-based) with AI-generated quizzes
 
 ### 🤖 AI Climate Mentor
 
@@ -54,6 +55,8 @@ AI-powered platform democratizing satellite climate data through multi-agent AI 
 - Gemini Vision (waste classification)
 
 **Climate APIs:** NASA FIRMS, OpenWeather, NREL PVWatts, Planet API, SoilGrids, IEA/IPCC 2025
+
+**Video:** Mux (player, uploader, live streaming, @mux/ai chapters)
 
 **Maps:** Mapbox GL JS
 

@@ -9,14 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { VideoUploader } from "@/components/video/VideoUploader";
 import { HarvestLiveBroadcaster } from "@/components/video/HarvestLiveBroadcaster";
 import { MuxVideoPlayer, MuxLivePlayer } from "@/components/video/MuxVideoPlayer";
 import { getThumbnailUrl, getAnimatedGifUrl } from "@/lib/mux";
-import { Video, MapPin, Eye, Heart, Clock, Play, Plus, X, AlertCircle, Trash2, Sparkles, Loader2, Languages, Globe } from "lucide-react";
+import { Video, MapPin, Eye, Heart, Clock, Play, Plus, X, AlertCircle, Trash2, Sparkles, Loader2, Languages, Globe, Mic } from "lucide-react";
 import { SUPPORTED_LANGUAGES, type TranslationResult } from "@/lib/ai-config";
 import Image from "next/image";
 
@@ -94,8 +94,10 @@ export function ClimateStoriesTab() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingChapters, setIsGeneratingChapters] = useState(false);
-  const [isTranslating, setIsTranslating] = useState(false);
   const [isTranslateDialogOpen, setIsTranslateDialogOpen] = useState(false);
+  const [isDubDialogOpen, setIsDubDialogOpen] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [isDubbing, setIsDubbing] = useState(false);
   const [targetLanguage, setTargetLanguage] = useState<string>("es");
   const [playerVersion, setPlayerVersion] = useState(0);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -337,6 +339,80 @@ export function ClimateStoriesTab() {
       });
     } finally {
       setIsTranslating(false);
+    }
+  };
+
+  const handleDubVideo = async () => {
+    if (!selectedVideo || !targetLanguage) return;
+
+    setIsDubbing(true);
+    toast({
+      title: "Dubbing Initiated",
+      description: "This may take a few minutes. We will notify you when done.",
+    });
+    setIsDubDialogOpen(false); // Close dialog immediately so user can continue watching
+
+    try {
+      const response = await fetch("/api/mux/ai/dub-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assetId: selectedVideo.mux_asset_id,
+          playbackId: selectedVideo.playback_id,
+          targetLanguage,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Dubbing failed to start");
+      }
+
+      const { dubbingId } = await response.json();
+
+      // Start Polling
+      const pollStatus = async () => {
+        try {
+          const statusRes = await fetch(
+            `/api/mux/ai/dub-status?id=${dubbingId}&assetId=${selectedVideo.mux_asset_id}&language=${targetLanguage}`
+          );
+          const statusData = await statusRes.json();
+
+          if (statusData.status === "completed") {
+             toast({
+               title: "Dubbing Complete! 🎙️",
+               description: "New audio track added. Reloading player...",
+             });
+             setIsDubbing(false);
+             // Delay to ensure track propagation
+             setTimeout(() => {
+                setPlayerVersion(v => v + 1);
+                toast({ title: "Player Reloaded", description: "Use the Audio menu to switch languages." });
+             }, 5000);
+          } else if (statusData.status === "failed") {
+             throw new Error("Dubbing job failed");
+          } else {
+             // Continue polling
+             setTimeout(pollStatus, 10000); // Poll every 10s
+          }
+        } catch (e) {
+          console.error("Polling error:", e);
+          setIsDubbing(false);
+          toast({ variant: "destructive", title: "Dubbing Error", description: "Failed to check status" });
+        }
+      };
+      
+      // Start the loop
+      pollStatus();
+
+    } catch (error) {
+       console.error("Dubbing error:", error);
+       setIsDubbing(false);
+       toast({
+         variant: "destructive",
+         title: "Dubbing Failed",
+         description: error instanceof Error ? error.message : "Start failed",
+       });
     }
   };
 
@@ -827,21 +903,22 @@ export function ClimateStoriesTab() {
                 </div>
                 
                 {/* AI Actions */}
-                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-2">
                   <Button 
                     variant="outline" 
-                    className="w-full sm:w-auto text-indigo-600 border-indigo-200 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+                    size="sm"
+                    className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 dark:hover:bg-indigo-950 gap-2"
                     onClick={handleGenerateChapters}
                     disabled={isGeneratingChapters}
                   >
                     {isGeneratingChapters ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-4 h-4 animate-spin" />
                         Generating Chapters...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4 mr-2" />
+                        <Sparkles className="w-4 h-4" />
                         { (selectedVideo.chapters && selectedVideo.chapters.length > 0)
                           ? "Regenerate Chapters" 
                           : "Generate AI Chapters" }
@@ -851,11 +928,23 @@ export function ClimateStoriesTab() {
 
                   <Button 
                     variant="outline" 
-                    className="w-full sm:w-auto text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950"
+                    size="sm" 
                     onClick={() => setIsTranslateDialogOpen(true)}
+                    className="gap-2"
                   >
-                    <Languages className="w-4 h-4 mr-2" />
+                    <Languages className="h-4 w-4" />
                     Translate Captions
+                  </Button>
+                  
+                   <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsDubDialogOpen(true)}
+                    className="gap-2"
+                    disabled={isDubbing}
+                  >
+                    <Mic className="h-4 w-4" />
+                    {isDubbing ? "Dubbing..." : "Dub Audio"}
                   </Button>
 
                   <Dialog open={isTranslateDialogOpen} onOpenChange={setIsTranslateDialogOpen}>
@@ -907,6 +996,46 @@ export function ClimateStoriesTab() {
                           )}
                         </Button>
                       </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Dubbing Dialog */}
+                  <Dialog open={isDubDialogOpen} onOpenChange={setIsDubDialogOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>AI Audio Dubbing</DialogTitle>
+                        <DialogDescription>
+                          Use ElevenLabs to clone the voice and dub the audio into another language.
+                          This takes about 2-5 minutes.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="dub-language" className="text-right">
+                            Language
+                          </Label>
+                          <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SUPPORTED_LANGUAGES.map((lang) => (
+                                <SelectItem key={lang.code} value={lang.code}>
+                                  {lang.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={() => setIsDubDialogOpen(false)} variant="outline">
+                          Cancel
+                        </Button>
+                        <Button onClick={handleDubVideo} disabled={isDubbing}>
+                          {isDubbing ? "Starting..." : "Start Dubbing"}
+                        </Button>
+                      </DialogFooter>
                     </DialogContent>
                   </Dialog>
 
