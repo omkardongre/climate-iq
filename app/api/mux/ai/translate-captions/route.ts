@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { muxVideo } from "@/lib/mux";
 import { SUPPORTED_LANGUAGES, type LanguageCode } from "@/lib/ai-config";
 
+// Allow up to 60 seconds for translation (serverless timeout config)
+export const maxDuration = 60;
+
 /**
  * POST /api/mux/ai/translate-captions
  * Translate video captions to another language using AI
@@ -55,15 +58,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch the source VTT captions
-    const vttUrl = `https://stream.mux.com/${playbackId}/text/captions.vtt`;
+    // Find the subtitle track (prefer 'text' type with 'subtitles' text_type)
+    // This is more reliable than assuming 'captions.vtt' alias works
+    const track = asset.tracks?.find(t => t.type === 'text' && t.text_type === 'subtitles');
+    
+    if (!track) {
+      return NextResponse.json(
+        { 
+          error: "Captions not available",
+          hint: "Auto-captions may still be processing. Try again in a few minutes.",
+          details: "No text track found on asset"
+        },
+        { status: 400 }
+      );
+    }
+
+    if (track.status === 'errored') {
+       return NextResponse.json(
+        { error: "Caption generation failed" },
+        { status: 400 }
+       );
+    }
+
+    // Use specific track ID 
+    const vttUrl = `https://stream.mux.com/${playbackId}/text/${track.id}.vtt`;
+    console.log(`[Translation] Fetching VTT from: ${vttUrl}`);
     const vttResponse = await fetch(vttUrl);
     
     if (!vttResponse.ok) {
       return NextResponse.json(
         { 
-          error: "Captions not available",
-          hint: "Auto-captions may still be processing. Try again in a few minutes."
+          error: "Failed to fetch captions",
+          hint: "The track exists but could not be downloaded.",
+          details: `Fetch error ${vttResponse.status}`
         },
         { status: 400 }
       );
@@ -77,13 +104,7 @@ export async function POST(request: NextRequest) {
       targetLanguage as LanguageCode
     );
 
-    // For production, you would:
-    // 1. Upload translated VTT to S3/storage
-    // 2. Add as new text track to the Mux asset
-    // For now, we'll add it directly using Mux's text track API
-    
     // Create a text track with the translated content
-    // Note: In production, this requires uploading to a public URL first
     const trackResult = await createTranslatedTrack(
       assetId, 
       translatedVtt, 
@@ -94,6 +115,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       assetId,
+      language: targetLanguage, // Matches TranslationResult interface
       targetLanguage,
       languageName: langConfig.name,
       trackId: trackResult.trackId,
@@ -119,7 +141,7 @@ async function translateVttContent(
   targetLanguage: LanguageCode
 ): Promise<string> {
   // Prefer Gemini, fallback to OpenAI
-  if (process.env.GOOGLE_GEMINI_API_KEY) {
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY) {
     return translateWithGemini(vtt, targetLanguage);
   } else if (process.env.OPENAI_API_KEY) {
     return translateWithOpenAI(vtt, targetLanguage);
@@ -132,7 +154,7 @@ async function translateWithGemini(
   vtt: string,
   targetLanguage: LanguageCode
 ): Promise<string> {
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY!;
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY!;
   
   const prompt = `Translate this WebVTT caption file to ${targetLanguage}. 
 Keep the exact VTT format including timestamps. Only translate the text content.
@@ -143,7 +165,7 @@ ${vtt}
 Respond with ONLY the translated VTT file, nothing else.`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -204,38 +226,88 @@ async function translateWithOpenAI(
   return data.choices?.[0]?.message?.content || "";
 }
 
+// Initialize Supabase Admin Client for server-side uploads
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+// Use Service Role Key for admin access (skips RLS)
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
 /**
  * Create a translated text track on the asset
- * In production, upload VTT to S3/storage first
+ * 1. Upload VTT to Supabase Storage
+ * 2. Add track to Mux Asset via URL
  */
 async function createTranslatedTrack(
   assetId: string,
   vttContent: string,
   languageCode: LanguageCode,
   languageName: string
-): Promise<{ trackId: string }> {
-  // For a production implementation:
-  // 1. Upload vttContent to Supabase Storage or S3
-  // 2. Get the public URL
-  // 3. Use muxVideo.assets.createTrack() with that URL
+): Promise<{ trackId: string; language: LanguageCode }> {
   
-  // Since we need storage, we'll store the translation in Supabase
-  // and return a placeholder for now
+  if (!supabaseUrl || !supabaseServiceKey) {
+     throw new Error("Missing Supabase configuration (URL or Service Role Key)");
+  }
+
+  // 1. Clean up existing tracks to avoid "Track name not unique" errors
+  try {
+    const asset = await muxVideo.assets.retrieve(assetId);
+    const targetName = languageName ?? String(languageCode);
+    
+    const existingTrack = asset.tracks?.find(t => 
+      t.type === 'text' && 
+      t.text_type === 'subtitles' && 
+      (t.name === targetName || t.language_code === languageCode)
+    );
+
+    if (existingTrack && existingTrack.id) {
+       console.log(`[Translation] Deleting existing track ${existingTrack.id} to allow update`);
+       await muxVideo.assets.deleteTrack(assetId, existingTrack.id);
+    }
+  } catch (err) {
+    console.warn("Warning during track cleanup:", err);
+    // Continue - if creating fails, the main error handler will catch it
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
-  console.log(`[Translation] Would add ${languageName} track to asset ${assetId}`);
-  console.log(`[Translation] VTT length: ${vttContent.length} chars`);
-  
-  // In production:
-  // const track = await muxVideo.assets.createTrack(assetId, {
-  //   type: 'text',
-  //   text_type: 'subtitles',
-  //   language_code: languageCode,
-  //   name: languageName,
-  //   url: 'https://storage.example.com/captions.vtt'
-  // });
-  
+  // 2. Upload to Supabase Storage
+  const fileName = `captions/${assetId}/${languageCode}.vtt`;
+  const { data: uploadData, error: uploadError } = await supabase
+    .storage
+    .from('climate-media')
+    .upload(fileName, vttContent, {
+      contentType: 'text/vtt',
+      upsert: true
+    });
+
+  if (uploadError) {
+    throw new Error(`Failed to upload captions to storage: ${uploadError.message}`);
+  }
+
+  // 3. Get Public URL
+  const { data: { publicUrl } } = supabase
+    .storage
+    .from('climate-media')
+    .getPublicUrl(fileName);
+
+  console.log(`[Translation] Uploaded to ${publicUrl}`);
+
+  // 4. Create Mux Track
+    const track = await muxVideo.assets.createTrack(assetId, {
+    url: publicUrl,
+    type: 'text',
+    text_type: 'subtitles',
+    language_code: languageCode,
+    name: languageName ?? String(languageCode),
+    closed_captions: false
+  });
+
+  console.log(`[Translation] Added track ${track.id} to asset ${assetId}`);
+
   return {
-    trackId: `translated-${languageCode}-${Date.now()}`,
+    trackId: track.id || "",
+    language: languageCode,
   };
 }
 

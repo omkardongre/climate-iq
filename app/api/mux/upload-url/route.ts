@@ -41,11 +41,16 @@ export async function POST(request: NextRequest) {
         passthrough: body.passthrough || undefined,
         // Video quality setting
         video_quality: body.videoQuality || "plus",
-        // Auto-generate captions using Whisper (CRITICAL for accessibility)
-        generated_subtitles: [
+        // CRITICAL: generated_subtitles MUST be inside input array
+        // This is the correct Mux API format for auto-captions
+        input: [
           {
-            language_code: "en",
-            name: "English (auto)",
+            generated_subtitles: [
+              {
+                language_code: "en",
+                name: "English CC",
+              },
+            ],
           },
         ],
       } as Record<string, unknown>,

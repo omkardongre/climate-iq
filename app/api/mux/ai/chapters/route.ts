@@ -1,22 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { muxVideo } from "@/lib/mux";
-import type { VideoChapter } from "@/lib/ai-config";
+import { generateChapters } from "@mux/ai/workflows";
+import { createClient } from "@supabase/supabase-js";
 
 /**
  * POST /api/mux/ai/chapters
- * Generate AI chapters for a video using Google Gemini
+ * Generate AI chapters for a video using official @mux/ai library
+ * 
+ * This is the PRODUCTION-LEVEL implementation using Mux's official
+ * open-source AI toolkit that handles:
+ * - Transcript fetching from Mux
+ * - Prompt engineering for chapter generation
+ * - LLM response parsing with retries
+ * - Error handling and edge cases
+ * - Database persistence (Supabase)
  * 
  * Request body:
  * - assetId: Mux asset ID
- * - provider: 'gemini' | 'openai' (default: 'gemini')
+ * - provider: 'google' | 'openai' | 'anthropic' (default: 'google')
  * 
  * Response:
- * - chapters: Array of { startTime, endTime, title }
+ * - chapters: Array of { startTime, value (title) }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { assetId, provider = "gemini" } = body;
+    const { assetId, provider = "google" } = body;
 
     if (!assetId) {
       return NextResponse.json(
@@ -25,238 +33,95 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the asset exists and is ready
-    const asset = await muxVideo.assets.retrieve(assetId);
+    // Validate provider
+    const validProviders = ["google", "openai", "anthropic"];
+    if (!validProviders.includes(provider)) {
+      return NextResponse.json(
+        { error: `Invalid provider. Use: ${validProviders.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Generating chapters for ${assetId} using @mux/ai (${provider})`);
+
+    // Use official @mux/ai generateChapters workflow
+    // This handles transcript fetching, prompt engineering, and LLM parsing
+    const result = await generateChapters(assetId, "en", {
+      provider: provider as "google" | "openai" | "anthropic",
+    });
+
+    // Transform response to match our expected format
+    // @mux/ai returns { startTime, value } format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chapters = result.chapters.map((chapter: any) => ({
+      startTime: chapter.startTime,
+      endTime: chapter.endTime ?? chapter.startTime + 60,
+      value: chapter.value || chapter.title,
+    }));
+
+    // Store chapters in Supabase
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    if (asset.status !== "ready") {
-      return NextResponse.json(
-        { error: "Asset is not ready yet" },
-        { status: 400 }
-      );
-    }
+    if (supabaseUrl && supabaseServiceKey) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      const { error: updateError } = await supabase
+        .from("climate_videos")
+        .update({ chapters: chapters })
+        .eq("mux_asset_id", assetId);
 
-    // Get the transcript from Mux
-    const playbackId = asset.playback_ids?.[0]?.id;
-    if (!playbackId) {
-      return NextResponse.json(
-        { error: "Asset has no playback ID" },
-        { status: 400 }
-      );
-    }
-
-    // Fetch transcript from Mux
-    const transcriptUrl = `https://stream.mux.com/${playbackId}/text/transcript.txt`;
-    const transcriptResponse = await fetch(transcriptUrl);
-    
-    if (!transcriptResponse.ok) {
-      // Transcript may not be ready yet
-      return NextResponse.json(
-        { 
-          error: "Transcript not available. Auto-captions may still be processing.",
-          hint: "Wait a few minutes after upload for captions to generate."
-        },
-        { status: 400 }
-      );
-    }
-
-    const transcript = await transcriptResponse.text();
-    const duration = asset.duration || 0;
-
-    // Generate chapters using AI
-    let chapters: VideoChapter[];
-
-    if (provider === "gemini" && process.env.GOOGLE_GEMINI_API_KEY) {
-      chapters = await generateChaptersWithGemini(transcript, duration);
-    } else if (provider === "openai" && process.env.OPENAI_API_KEY) {
-      chapters = await generateChaptersWithOpenAI(transcript, duration);
+      if (updateError) {
+        console.error("Error storing chapters in Supabase:", updateError);
+        // We continue nicely even if storage fails, but log it
+      } else {
+        console.log(`Stored ${chapters.length} chapters for ${assetId} in Supabase`);
+      }
     } else {
-      // Fallback to simple time-based chapters
-      chapters = generateSimpleChapters(duration);
+      console.warn("Supabase credentials missing, skipping DB storage");
     }
 
     return NextResponse.json({
       assetId,
       chapters,
-      provider: chapters.length > 3 ? provider : "fallback",
+      provider,
       totalChapters: chapters.length,
+      source: "@mux/ai official library",
     });
   } catch (error) {
     console.error("Error generating chapters:", error);
+    
+    // Provide helpful error messages
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Check for common issues
+    if (errorMessage.includes("transcript") || errorMessage.includes("captions")) {
+      return NextResponse.json(
+        { 
+          error: "Captions not available for this video.",
+          hint: "Ensure auto-captions are enabled. Wait 3-5 minutes after upload for captions to generate.",
+          details: errorMessage
+        },
+        { status: 400 }
+      );
+    }
+    
+    if (errorMessage.includes("API key") || errorMessage.includes("credential")) {
+      return NextResponse.json(
+        { 
+          error: "AI provider credentials not configured.",
+          hint: "Add GOOGLE_GENERATIVE_AI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY to .env.local",
+          details: errorMessage
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { 
         error: "Failed to generate chapters",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: errorMessage
       },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * Generate chapters using Google Gemini
- */
-async function generateChaptersWithGemini(
-  transcript: string,
-  duration: number
-): Promise<VideoChapter[]> {
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Gemini API key not configured");
-
-  const prompt = `You are a video chapter generator for climate education content. 
-Analyze this transcript and create meaningful chapter markers.
-
-Transcript:
-${transcript.slice(0, 8000)} ${transcript.length > 8000 ? "... (truncated)" : ""}
-
-Video Duration: ${Math.round(duration)} seconds
-
-Generate 4-8 chapters. Each chapter should have a meaningful title related to the climate topic.
-Respond in JSON format only:
-{
-  "chapters": [
-    { "startTime": 0, "endTime": 30, "title": "Introduction" },
-    { "startTime": 30, "endTime": 90, "title": "Topic Name" }
-  ]
-}`;
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1024,
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  
-  // Extract JSON from response
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error("Invalid response format from Gemini");
-  }
-
-  const parsed = JSON.parse(jsonMatch[0]);
-  return parsed.chapters || [];
-}
-
-/**
- * Generate chapters using OpenAI
- */
-async function generateChaptersWithOpenAI(
-  transcript: string,
-  duration: number
-): Promise<VideoChapter[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OpenAI API key not configured");
-
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are a video chapter generator. Generate meaningful chapter markers based on the transcript. Respond with JSON only.",
-        },
-        {
-          role: "user",
-          content: `Transcript (first 8000 chars):\n${transcript.slice(0, 8000)}\n\nDuration: ${duration}s\n\nGenerate 4-8 chapters in format: {"chapters": [{"startTime": 0, "endTime": 30, "title": "Intro"}]}`,
-        },
-      ],
-      temperature: 0.3,
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "{}";
-  const parsed = JSON.parse(content);
-  return parsed.chapters || [];
-}
-
-/**
- * Fallback: Generate simple time-based chapters
- */
-function generateSimpleChapters(duration: number): VideoChapter[] {
-  const chapters: VideoChapter[] = [];
-  const chapterDuration = Math.max(30, Math.floor(duration / 5));
-  
-  let currentTime = 0;
-  let chapterNum = 1;
-  
-  const titles = [
-    "Introduction",
-    "Understanding the Topic",
-    "Key Points",
-    "Analysis",
-    "Conclusion",
-  ];
-
-  while (currentTime < duration) {
-    const endTime = Math.min(currentTime + chapterDuration, duration);
-    chapters.push({
-      startTime: currentTime,
-      endTime,
-      title: titles[chapterNum - 1] || `Part ${chapterNum}`,
-    });
-    currentTime = endTime;
-    chapterNum++;
-    if (chapterNum > 5) break;
-  }
-
-  return chapters;
-}
-
-/**
- * GET /api/mux/ai/chapters?assetId=xxx
- * Get cached chapters for a video
- */
-export async function GET(request: NextRequest) {
-  const assetId = request.nextUrl.searchParams.get("assetId");
-  
-  if (!assetId) {
-    return NextResponse.json(
-      { error: "Asset ID is required" },
-      { status: 400 }
-    );
-  }
-
-  // In production, you would store chapters in Supabase
-  // For now, return info about the asset
-  try {
-    const asset = await muxVideo.assets.retrieve(assetId);
-    
-    return NextResponse.json({
-      assetId,
-      status: asset.status,
-      duration: asset.duration,
-      hasTranscript: asset.status === "ready",
-      hint: "POST to this endpoint with assetId to generate chapters",
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve asset" },
       { status: 500 }
     );
   }
