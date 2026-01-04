@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, MapPin, ExternalLink, Users, Newspaper, CalendarDays, BookOpen, Award } from 'lucide-react'
+import { Calendar, MapPin, ExternalLink, Users, Newspaper, CalendarDays, BookOpen, Award, Video } from 'lucide-react'
 import { storyblokService } from '@/lib/storyblok-service'
 import type { CommunityUpdate, EventItem, NewsItem } from '@/lib/storyblok-service'
 import { SimpleLanguageSelector } from '@/components/ui/simple-language-selector'
@@ -13,6 +13,7 @@ import { translationService } from '@/lib/translation-service'
 import { useCountryTheme } from '@/hooks/useCountryTheme'
 import Image from 'next/image'
 import { LearningModules } from '@/components/community/LearningModules'
+import { ClimateStoriesTab } from '@/components/community/ClimateStoriesTab'
 
 export default function CommunityPage() {
   const [communityUpdates, setCommunityUpdates] = useState<CommunityUpdate[]>([])
@@ -128,25 +129,34 @@ export default function CommunityPage() {
         </div> */}
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="updates" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+        <Tabs defaultValue="stories" className="w-full">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
+            <TabsTrigger value="stories" className="flex items-center gap-2">
+              <Video className="h-4 w-4" />
+              {t('Climate Stories')}
+            </TabsTrigger>
             <TabsTrigger value="updates" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              {t('Community Updates')}
+              {t('Updates')}
             </TabsTrigger>
             <TabsTrigger value="events" className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4" />
-              {t('Environmental Events')}
+              {t('Events')}
             </TabsTrigger>
             <TabsTrigger value="news" className="flex items-center gap-2">
               <Newspaper className="h-4 w-4" />
-              {t('Latest News')}
+              {t('News')}
             </TabsTrigger>
             <TabsTrigger value="learn" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               {t('Learn')}
             </TabsTrigger>
           </TabsList>
+
+          {/* Climate Stories Tab - NEW Mux-powered feature */}
+          <TabsContent value="stories" className="space-y-6">
+            <ClimateStoriesTab />
+          </TabsContent>
 
           {/* Community Updates Tab */}
           <TabsContent value="updates" className="space-y-6">
