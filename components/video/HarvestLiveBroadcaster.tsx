@@ -27,9 +27,10 @@ import { createClient } from "@/lib/supabase/client";
 
 // Stream types
 const STREAM_TYPES = [
-  { value: "harvest", label: "Harvest Update" },
+  { value: "climate_update", label: "Climate Update" },
   { value: "weather", label: "Weather Report" },
-  { value: "expert_advice", label: "Expert Advice" },
+  { value: "expert_advice", label: "Expert Consultation" },
+  { value: "sustainability", label: "Sustainability Tips" },
   { value: "community", label: "Community Event" },
   { value: "other", label: "Other" },
 ];
@@ -214,11 +215,11 @@ export function HarvestLiveBroadcaster() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Video className="w-5 h-5 text-red-600" />
-            🚜 Harvest Live Broadcast
+            🌍 Climate Live Broadcast
           </DialogTitle>
           <DialogDescription>
-            Share real-time updates from your farm with the community. 
-            Low-latency streaming with automatic captions and recording.
+            Share real-time climate updates with the community. 
+            Low-latency streaming with automatic captions.
           </DialogDescription>
         </DialogHeader>
 

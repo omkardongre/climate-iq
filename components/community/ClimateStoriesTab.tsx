@@ -253,6 +253,10 @@ export function ClimateStoriesTab() {
 
   // Generate AI Chapters
   const handleGenerateChapters = async () => {
+    if (!currentUser) {
+      toast({ variant: "destructive", title: "Sign in required", description: "Please sign in to use AI features." });
+      return;
+    }
     if (!selectedVideo || !selectedVideo.mux_asset_id) return;
 
     setIsGeneratingChapters(true);
@@ -291,6 +295,10 @@ export function ClimateStoriesTab() {
   };
 
   const handleTranslateCaptions = async () => {
+    if (!currentUser) {
+      toast({ variant: "destructive", title: "Sign in required", description: "Please sign in to use AI features." });
+      return;
+    }
     if (!selectedVideo?.mux_asset_id) return;
     
     setIsTranslating(true);
@@ -343,6 +351,10 @@ export function ClimateStoriesTab() {
   };
 
   const handleDubVideo = async () => {
+    if (!currentUser) {
+      toast({ variant: "destructive", title: "Sign in required", description: "Please sign in to use AI features." });
+      return;
+    }
     if (!selectedVideo || !targetLanguage) return;
 
     setIsDubbing(true);
