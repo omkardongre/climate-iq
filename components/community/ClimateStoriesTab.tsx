@@ -636,8 +636,24 @@ export function ClimateStoriesTab() {
             </DialogHeader>
             
             <div className="space-y-6 py-4">
-              {/* Video Uploader */}
-              {!uploadedPlaybackId ? (
+              {/* Auth Check - Show login message if not logged in */}
+              {!currentUser ? (
+                <div className="text-center py-8 space-y-4">
+                  <AlertCircle className="w-12 h-12 mx-auto text-amber-500" />
+                  <p className="text-lg font-medium text-gray-900 dark:text-white">
+                    Sign in required
+                  </p>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Please sign in to share your climate story. This helps us maintain community quality.
+                  </p>
+                  <Button 
+                    onClick={() => window.location.href = '/auth/login'}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Sign In
+                  </Button>
+                </div>
+              ) : !uploadedPlaybackId ? (
                 <VideoUploader
                   onUploadComplete={handleUploadComplete}
                   onUploadError={(err) => setError(err.message)}
