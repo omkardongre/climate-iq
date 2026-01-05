@@ -253,8 +253,6 @@ export function HarvestLiveBroadcaster() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={2}
                 />
-                  rows={2}
-                />
               </div>
 
 
